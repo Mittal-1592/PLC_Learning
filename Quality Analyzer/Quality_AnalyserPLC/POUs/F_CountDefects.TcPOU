@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="F_CountDefects" Id="{49319384-0414-4024-9fe4-4ae6e73f0a28}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_CountDefects : INT
+VAR_INPUT
+	products : ARRAY[1..20] OF REAL;
+	
+END_VAR
+VAR
+	defects : INT := 0;
+	i : INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i := 1 TO 20 DO
+	IF (products[i] < 50) OR (products[i] > 500) THEN 
+		defects := defects + 1;
+	END_IF
+END_FOR
+
+F_CountDefects := defects;]]></ST>
+    </Implementation>
+    <LineIds Name="F_CountDefects">
+      <LineId Id="13" Count="3" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

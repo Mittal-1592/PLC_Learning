@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_ProductStats" Id="{895c9f13-d177-46bc-9a7c-3f17bf8c9e60}">
+    <Declaration><![CDATA[TYPE ST_ProductStats :
+STRUCT
+	averageWeight :REAL;
+	minWeight : REAL;
+	maxWeight : REAL;
+	defectiveCount : INT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

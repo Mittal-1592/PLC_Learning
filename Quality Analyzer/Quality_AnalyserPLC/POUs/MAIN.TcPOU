@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="MAIN" Id="{3ee17dff-ff82-475f-b529-8dd1aa8a0591}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	products : ARRAY[1..20] OF REAL := [200,3,485,4,33.9,
+										330,58,221,34.7,23.9,
+										34.9,334,657,234,129,
+										1189,221,1198,2112,102];
+	stStats : ST_ProductStats;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[stStats := F_AnalyzeBatch(products);]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
