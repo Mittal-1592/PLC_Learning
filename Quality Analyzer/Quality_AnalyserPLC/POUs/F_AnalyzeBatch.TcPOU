@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="F_AnalyzeBatch" Id="{70bb4dff-7d32-4ad8-962f-3caba78344fb}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_AnalyzeBatch : ST_ProductStats
+VAR_INPUT
+	products : ARRAY[1..20] OF REAL;
+END_VAR
+VAR
+	stats : ST_ProductStats;
+	sMinMax : ST_MinMax;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[stats.averageWeight := F_CalculateAverage(products);
+stats.defectiveCount := F_CountDefects(products);
+
+sMinMax := F_FindMinMax(products);
+
+stats.maxWeight := sMinMax.maxi;
+stats.minWeight := sMinMax.mini;
+
+
+
+F_AnalyzeBatch := stats;]]></ST>
+    </Implementation>
+    <LineIds Name="F_AnalyzeBatch">
+      <LineId Id="39" Count="9" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

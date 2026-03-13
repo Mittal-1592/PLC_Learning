@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="F_FindMinMax" Id="{4609def0-d388-412d-9cbe-731b5ada00fb}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_FindMinMax : ST_MinMax
+VAR_INPUT
+	products : ARRAY[1..20] OF REAL;
+END_VAR
+	
+VAR
+	minMax : ST_MinMax;
+	minimum : REAL := products[1];
+	maximum : REAL := products[1];	
+	i : INT;
+	maxi: INT;
+	mini: INT;
+	FindMinMax: ST_MinMax;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i := 1 TO 20 DO
+	IF products[i] > maximum THEN 
+		maximum := products[i];
+	END_IF
+	
+	IF products[i] < minimum THEN
+		minimum := products[i];
+	END_IF
+END_FOR
+
+minMax.maxi := maximum;
+minMax.mini := minimum;
+
+F_FindMinMax := minMax;]]></ST>
+    </Implementation>
+    <LineIds Name="F_FindMinMax">
+      <LineId Id="15" Count="12" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
