@@ -12,8 +12,8 @@ END_VAR
     <Method Name="ApplyCooling" Id="{9fd5a27c-6ffd-45d0-a01e-7fa5c3995d26}">
       <Declaration><![CDATA[{warning 'add method implementation '}
 METHOD ApplyCooling 
-VAR_INPUT
-	refTank	: REFERENCE TO ST_Tank;
+VAR_IN_OUT	
+	refTank	: ST_Tank;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -22,13 +22,16 @@ END_VAR
     </Method>
     <Method Name="CheckSafety" Id="{36c9eccf-c3f1-414c-ac1f-1d4f1af5522a}">
       <Declaration><![CDATA[{warning 'add method implementation '}
-METHOD CheckSafety
+METHOD CheckSafety : BOOL
 VAR_INPUT
 	pTank	: POINTER TO ST_Tank;
 END_VAR
-]]></Declaration>
+
+VAR_OUTPUT
+	alarm : BOOL;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[CheckAlarm(pTank);]]></ST>
+        <ST><![CDATA[alarm := CheckAlarm(pTank);]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_TankController">

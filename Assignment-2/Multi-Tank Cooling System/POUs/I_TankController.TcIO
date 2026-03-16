@@ -5,17 +5,20 @@
 ]]></Declaration>
     <Method Name="ApplyCooling" Id="{bd3ade69-d84b-4eff-a3f9-a660017a672e}">
       <Declaration><![CDATA[METHOD ApplyCooling
-VAR_INPUT
-	refTank : REFERENCE TO ST_Tank;
+VAR_IN_OUT	
+	refTank : ST_Tank;
 END_VAR
 ]]></Declaration>
     </Method>
     <Method Name="CheckSafety" Id="{9418bb1b-fde8-466b-aa58-e222770778d9}">
-      <Declaration><![CDATA[METHOD CheckSafety
+      <Declaration><![CDATA[METHOD CheckSafety : BOOL
 VAR_INPUT
 	pTank : POINTER TO ST_Tank;
 END_VAR
-]]></Declaration>
+
+VAR_OUTPUT
+	alarm : BOOL;
+END_VAR]]></Declaration>
     </Method>
   </Itf>
 </TcPlcObject>

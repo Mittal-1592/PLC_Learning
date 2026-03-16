@@ -3,15 +3,21 @@
   <POU Name="CoolTank" Id="{015173cf-e13a-4eb8-95d7-7cc655e5d0c5}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION CoolTank
 VAR_INPUT
-	refTank : REFERENCE TO St_Tank;
+	refTank : REFERENCE TO ST_Tank;
 END_VAR
 VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[reftank.temperature := refTank.temperature - 1;]]></ST>
+      <ST><![CDATA[IF refTank.temperature > 50 THEN 
+	reftank.temperature := refTank.temperature - 1;
+END_IF
+
+
+]]></ST>
     </Implementation>
     <LineIds Name="CoolTank">
+      <LineId Id="14" Count="4" />
       <LineId Id="7" Count="0" />
     </LineIds>
   </POU>
