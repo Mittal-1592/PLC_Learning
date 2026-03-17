@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="MAIN" Id="{572df177-71bc-4f88-b5d9-115cb062d6b0}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	EventBuffer : FB_EventBuffer;
+	
+	AddEvent : BOOL;
+	stEventToAdd : ST_Event;
+	bEventToAddError : BOOL;
+	
+	ReadAndRemoveEvent : BOOL;
+	stLastReadEvent : St_Event;
+	bReadAndRemoveEventError : BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF AddEvent THEN
+	EventBuffer.AddEvent(stEvent := stEventToAdd, bError => bEventToAddError);
+	AddEvent := FALSE;
+END_IF
+
+IF ReadAndRemoveEvent THEN
+	EventBuffer.GetAndRemoveEvent(stEvent => stLastReadEvent,bError => bReadAndRemoveEventError);
+	ReadAndRemoveEvent := False;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="2" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
