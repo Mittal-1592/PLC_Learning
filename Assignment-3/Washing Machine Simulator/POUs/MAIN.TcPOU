@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="MAIN" Id="{e01796bc-0cf2-4f17-8405-eceb0f0b9cc3}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbWashingMachine : FB_WashingMachine;
+	iStrategyType : I_WashStrategy;
+	eStrategySelected : E_StrategyType := E_StrategyType.HeavyWash;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbWashingMachine.selectStrategy(estrategyType := eStrategySelected);
+
+iStrategyType := fbWashingMachine;
+iStrategyType.startMachine();  // Abstraction achieved
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="10" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="25" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

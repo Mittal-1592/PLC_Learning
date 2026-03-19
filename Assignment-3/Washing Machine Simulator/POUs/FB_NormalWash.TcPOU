@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_NormalWash" Id="{8ab743c1-17e5-412b-b5e3-3a6f47d5ce24}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NormalWash IMPLEMENTS I_WashStrategy
+
+VAR
+	nrinseCount : INT := 3;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="getDuration" Id="{d2d7936d-12de-48de-b31b-04e12abf5a5c}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD getDuration : TIME	
+VAR
+	tTimeToWash : TIME := T#20S;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getDuration := tTimeToWash;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="RinseCount" Id="{2e7998dc-5694-4a48-9c13-a4dc1bd038c1}">
+      <Declaration><![CDATA[PROPERTY RinseCount : int]]></Declaration>
+      <Get Name="Get" Id="{4cc35fe4-fb18-4a8c-9da6-574cf2197cdd}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[RinseCount := nrinseCount;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{854eb3cb-3329-4e71-9b64-057eeb5931c0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[
+nrinseCount := RinseCount;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="startMachine" Id="{e83a4d1e-b4f7-4e70-bb3d-6e06710055c6}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD startMachine
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_NormalWash">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NormalWash.getDuration">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NormalWash.RinseCount.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NormalWash.RinseCount.Set">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NormalWash.startMachine">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
