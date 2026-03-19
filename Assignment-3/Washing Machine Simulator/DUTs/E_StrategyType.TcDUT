@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_StrategyType" Id="{4d6497f7-ebae-4371-aa94-56c88ae39c2c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_StrategyType :
+(
+	HeavyWash,
+	NormalWash,
+	SoftWash,
+	None
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
