@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_BottleFillingMachine" Id="{8b303d4f-0cdf-4b38-8abc-9572eb954d2c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_BottleFillingMachine IMPLEMENTS I_Machine
+
+
+VAR
+	eState : E_MachineState;
+    eMode  : E_MachineMode;
+	
+	fbConveyor      : FB_Conveyor;
+    fbFillingUnit   : FB_FillingUnit;
+    fbBottleCounter : FB_BottleCounter;
+	
+	fbtimer : TON;
+	tConveyerTime : TIME := T#5S;
+	tFillingTime : TIME := T#3S;
+	
+
+	tonSimBottle : TON;
+    tonSimLevel  : TON;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{fe08e00b-04d9-496e-9e8b-964636ee76f3}">
+      <Declaration><![CDATA[METHOD Execute
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GVL_IO.g_bStopButton THEN
+	GVL_IO.g_bAlarmLamp := TRUE;
+    eState := E_MachineState.Stopped;
+END_IF
+
+IF GVL_IO.g_bresetCounter THEN 
+	fbBottleCounter.Reset();
+	GVL_IO.g_bresetCounter := FALSE;
+END_IF
+
+CASE eState OF
+
+    E_MachineState.Idle:
+			fbConveyor.stop();
+			fbFillingUnit.StopFill();
+					start();
+			
+    E_MachineState.Running:
+			GVL_IO.g_sStatusofMachine := 'Conveyor is Running';
+			GVL_IO.bSIM_BottleSensor := FALSE;
+			fbConveyor.start();
+			tonSimBottle(IN := NOT GVL_IO.bSIM_BottleSensor, PT := tConveyerTime);
+			
+			IF tonSimBottle.Q THEN 
+				GVL_IO.g_sStatusofMachine := 'Bottle detected';
+				GVL_IO.bSIM_BottleSensor := TRUE;
+			END_IF
+			
+			IF GVL_IO.g_bBottleSensor OR GVL_IO.bSIM_BottleSensor THEN 
+				fbConveyor.stop();
+				tonSimBottle(IN := FALSE);
+				eState := E_MachineState.Filling;
+			END_IF
+			
+			IF tonSimBottle.Q AND NOT (GVL_IO.g_bBottleSensor OR GVL_IO.bSIM_BottleSensor) THEN
+
+				GVL_IO.g_bAlarmLamp := TRUE;
+			
+				eState := E_MachineState.Stopped;		
+			END_IF
+
+
+    E_MachineState.Filling:
+			GVL_IO.g_sStatusofMachine := 'Filling is Started';
+			GVL_IO.bSIM_LevelSensor := FALSE;
+			fbFillingUnit.StartFill();
+			
+			tonSimLevel(IN := NOT GVL_IO.bSIM_LevelSensor, PT := tFillingTime);
+			
+			IF tonSimLevel.Q THEN 
+				GVL_IO.g_sStatusofMachine := 'Filling Completed';
+				GVL_IO.bSIM_LevelSensor := TRUE;
+			END_IF
+			
+			IF GVL_IO.g_bLevelSensor OR GVL_IO.bSIM_LevelSensor THEN 
+				fbFillingUnit.StopFill();
+				tonSimLevel(IN := FALSE);
+				
+				eState := E_MachineState.Running;
+				fbBottleCounter.BottleCount();			
+   			END_IF
+			
+			IF tonSimLevel.Q AND NOT (GVL_IO.g_bLevelSensor OR GVL_IO.bSIM_LevelSensor) THEN
+				GVL_IO.g_bAlarmLamp := TRUE;		
+				eState := E_MachineState.Stopped;
+			END_IF
+			
+			
+
+
+    E_MachineState.Stopped:
+			stop();
+			fbConveyor.Stop();
+			fbFillingUnit.StopFill();
+			
+
+
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SelectMode" Id="{af7a7f0c-87c3-420e-803b-4cfcacfc6a80}">
+      <Declaration><![CDATA[METHOD SelectMode : E_MachineMode
+VAR_INPUT
+	eSelectedMode : E_MachineMode;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[eMode := eSelectedMode;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Start" Id="{16419386-e6e4-48f4-b76c-871cca0c0b49}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Start 
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GVL_IO.g_bStartButton THEN
+	GVL_IO.g_bAlarmLamp := FALSE;
+    eState := E_MachineState.Running;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Stop" Id="{848cb335-2e76-42e0-bb57-9e9f71afbe6e}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Stop 
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GVL_IO.g_bStopButton THEN
+    eState := E_MachineState.Stopped;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_BottleFillingMachine">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_BottleFillingMachine.Execute">
+      <LineId Id="168" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="125" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="95" Count="1" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_BottleFillingMachine.SelectMode">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_BottleFillingMachine.Start">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_BottleFillingMachine.Stop">
+      <LineId Id="5" Count="1" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

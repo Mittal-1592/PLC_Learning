@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="MAIN" Id="{c64c315e-42ea-46d0-b038-de9d06b9360d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+    fbMachine : FB_BottleFillingMachine;  
+    imachine   : I_Machine; 
+	eSelectMode : E_MachineMode := E_MachineMode.auto;         
+
+	bRunOnce : BOOL := TRUE;       
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[if bRunONce then
+	imachine := fbMachine;
+
+	fbmachine.SelectMode(eSelectedMode := eSelectMode);
+	brunOnce := FALSE;
+END_IF
+
+
+imachine.Execute();]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="126" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="111" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
