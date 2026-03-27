@@ -3,27 +3,27 @@
   <GVL Name="GVL_IO" Id="{7ddb7e4f-c398-4a35-9a36-35cb88b366aa}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL
-	g_bStartButton  : BOOL;   // Start button input
-    g_bStopButton   : BOOL;   // Stop button input
-    g_bBottleSensor : BOOL;   // Bottle sensor
-    g_bLevelSensor  : BOOL;   // Level sensor
+	g_bStartButton  : BOOL;   
+    g_bStopButton   : BOOL;   
+    g_bBottleSensor : BOOL;   
+    g_bLevelSensor  : BOOL;   
 	
 	g_nBottleCount : INT;
 	
 	bSIM_BottleSensor : BOOL := FALSE;
 	bSIM_LevelSensor  : BOOL := FALSE;
 
-    // Outputs
-    g_bConveyorMotor : BOOL;  // Conveyor motor
-    g_bFillingValve  : BOOL;  // Filling valve
-    g_bAlarmLamp     : BOOL;  // Alarm lamp
+    
+    g_bConveyorMotor : BOOL;  
+    g_bFillingValve  : BOOL;  
+    g_bAlarmLamp     : BOOL;  
 	
 	g_bresetCounter : BOOL;
 	
 	g_sStatusofMachine : STRING := 'Press start button';
 	
-	eState : E_MachineState;
-	eMode : E_MachineMode;
+	g_eState : E_MachineState;
+	g_eMode : E_MachineMode;
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

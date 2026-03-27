@@ -43,6 +43,7 @@ END_IF
 CASE eState OF
 
     E_MachineState.Idle:
+			GVL_IO.g_eState := E_MachineState.Idle;
 			fbConveyor.stop();
 			fbFillingUnit.StopFill();
 					start();
@@ -56,6 +57,7 @@ CASE eState OF
 			IF tonSimBottle.Q THEN 
 				GVL_IO.g_sStatusofMachine := 'Bottle detected';
 				GVL_IO.bSIM_BottleSensor := TRUE;
+				GVL_IO.g_eState := E_MachineState.Running;
 			END_IF
 			
 			IF GVL_IO.g_bBottleSensor OR GVL_IO.bSIM_BottleSensor THEN 
@@ -82,6 +84,7 @@ CASE eState OF
 			IF tonSimLevel.Q THEN 
 				GVL_IO.g_sStatusofMachine := 'Filling Completed';
 				GVL_IO.bSIM_LevelSensor := TRUE;
+				GVL_IO.g_eState := E_MachineState.Filling;
 			END_IF
 			
 			IF GVL_IO.g_bLevelSensor OR GVL_IO.bSIM_LevelSensor THEN 
@@ -156,6 +159,7 @@ END_IF]]></ST>
       <LineId Id="193" Count="0" />
       <LineId Id="167" Count="0" />
       <LineId Id="8" Count="2" />
+      <LineId Id="206" Count="0" />
       <LineId Id="30" Count="0" />
       <LineId Id="32" Count="1" />
       <LineId Id="86" Count="0" />
@@ -166,7 +170,9 @@ END_IF]]></ST>
       <LineId Id="105" Count="0" />
       <LineId Id="150" Count="1" />
       <LineId Id="200" Count="0" />
-      <LineId Id="152" Count="1" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="153" Count="0" />
       <LineId Id="149" Count="0" />
       <LineId Id="129" Count="1" />
       <LineId Id="161" Count="0" />
@@ -186,6 +192,7 @@ END_IF]]></ST>
       <LineId Id="156" Count="0" />
       <LineId Id="202" Count="0" />
       <LineId Id="157" Count="0" />
+      <LineId Id="208" Count="0" />
       <LineId Id="155" Count="0" />
       <LineId Id="143" Count="0" />
       <LineId Id="95" Count="1" />

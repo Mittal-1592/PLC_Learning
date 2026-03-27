@@ -27,7 +27,7 @@
     <HmiViewportUserScaleable>Default</HmiViewportUserScaleable>
     <HmiPostProcessing>True</HmiPostProcessing>
     <Name>HMI_BottleFilling</Name>
-    <HmiCommunicationRouterPort>10104</HmiCommunicationRouterPort>
+    <HmiCommunicationRouterPort>10105</HmiCommunicationRouterPort>
     <HmiCommunicationServerAuthPort>13004</HmiCommunicationServerAuthPort>
     <HmiInitial>1.12.762.56</HmiInitial>
     <HmiRecent>1.12.762.56</HmiRecent>

@@ -2622,6 +2622,16 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_IO.g_eState": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_IO::g_eState",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.E_MachineState"
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_IO.g_nBottleCount": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -3567,6 +3577,7 @@
                 "PLC1.GVL_IO.g_bStartButton": 3,
                 "PLC1.GVL_IO.g_bStopButton": 3,
                 "PLC1.GVL_IO.g_bresetCounter": 3,
+                "PLC1.GVL_IO.g_eState": 3,
                 "PLC1.GVL_IO.g_nBottleCount": 3,
                 "PLC1.GVL_IO.g_sStatusofMachine": 3,
                 "SetLocale": 3,
