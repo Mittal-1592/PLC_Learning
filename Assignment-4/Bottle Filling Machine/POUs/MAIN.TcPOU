@@ -5,30 +5,46 @@
 VAR
     fbMachine : FB_BottleFillingMachine;  
     imachine   : I_Machine; 
-	eSelectMode : E_MachineMode := E_MachineMode.auto;         
+	eSelectMode : E_MachineMode;         
 
-	bRunOnce : BOOL := TRUE;       
+	bRunOnce : BOOL;       
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[if bRunONce then
-	imachine := fbMachine;
+      <ST><![CDATA[WHILE GVL_IO.g_eMode = E_MachineMode.none DO
+	GVL_IO.g_sStatusofMachine := 'Select any Mode';
+	bRunOnce := True;
+END_WHILE
 
+IF bRunONce THEN
+	imachine := fbMachine;
+	eSelectMode := GVL_IO.g_eMode;
 	fbmachine.SelectMode(eSelectedMode := eSelectMode);
 	brunOnce := FALSE;
 END_IF
 
 
-imachine.Execute();]]></ST>
+imachine.Execute();
+
+]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
+      <LineId Id="170" Count="0" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="156" Count="0" />
       <LineId Id="126" Count="0" />
-      <LineId Id="129" Count="1" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="151" Count="0" />
       <LineId Id="127" Count="0" />
-      <LineId Id="131" Count="0" />
+      <LineId Id="160" Count="0" />
       <LineId Id="128" Count="0" />
       <LineId Id="109" Count="0" />
-      <LineId Id="111" Count="1" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="112" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

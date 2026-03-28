@@ -6,7 +6,8 @@
 TYPE E_MachineMode :
 (
 	auto,
-	manual
+	manual, 
+	none
 );
 END_TYPE
 ]]></Declaration>

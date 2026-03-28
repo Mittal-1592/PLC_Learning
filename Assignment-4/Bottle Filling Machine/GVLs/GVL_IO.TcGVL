@@ -21,9 +21,10 @@ VAR_GLOBAL
 	g_bresetCounter : BOOL;
 	
 	g_sStatusofMachine : STRING := 'Press start button';
+	g_conveyorStatus : STRING := 'Conveyor is stopped';
 	
 	g_eState : E_MachineState;
-	g_eMode : E_MachineMode;
+	g_eMode : E_MachineMode := E_MachineMode.none;
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>
