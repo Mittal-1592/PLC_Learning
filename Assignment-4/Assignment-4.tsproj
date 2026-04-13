@@ -13,7 +13,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{7C76B587-72FC-486A-A937-319B1D5E7ABD}" Name="Bottle Filling Machine" PrjFilePath="Bottle Filling Machine\Bottle Filling Machine.plcproj" TmcFilePath="Bottle Filling Machine\Bottle Filling Machine.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Bottle Filling Machine\Bottle Filling Machine.tmc" TmcHash="{BEA63173-5D45-9432-5ED7-A7B4C4AFDC81}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Bottle Filling Machine\Bottle Filling Machine.tmc" TmcHash="{06809C5F-9BD8-FAD9-1A6B-C98824A039D1}">
 					<Name>Bottle Filling Machine Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>

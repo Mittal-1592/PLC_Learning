@@ -36,7 +36,8 @@
             },
             "enum": [
                 0,
-                1
+                1,
+                2
             ],
             "options": [
                 {
@@ -46,6 +47,10 @@
                 {
                     "label": "manual",
                     "value": 1
+                },
+                {
+                    "label": "none",
+                    "value": 2
                 }
             ],
             "type": "integer"
@@ -2573,6 +2578,16 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_IO.bSIM_LevelSensor": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_IO::bSIM_LevelSensor",
+            "SCHEMA": {
+                "$ref": "tchmi:general#/definitions/BOOL"
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_IO.eState": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2615,6 +2630,26 @@
             "DOMAIN": "ADS",
             "DYNAMIC": true,
             "MAPPING": "PLC1::GVL_IO::g_bLevelSensor",
+            "SCHEMA": {
+                "$ref": "tchmi:general#/definitions/BOOL"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_IO.g_bSIM_BottleSensor": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_IO::g_bSIM_BottleSensor",
+            "SCHEMA": {
+                "$ref": "tchmi:general#/definitions/BOOL"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_IO.g_bSIM_LevelSensor": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_IO::g_bSIM_LevelSensor",
             "SCHEMA": {
                 "$ref": "tchmi:general#/definitions/BOOL"
             },
@@ -2714,6 +2749,16 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.MAIN.bRunOnce": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::MAIN::bRunOnce",
+            "SCHEMA": {
+                "$ref": "tchmi:general#/definitions/BOOL"
+            },
+            "USEMAPPING": true
+        },
         "PLC1.MAIN.eSelectMode": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2721,6 +2766,23 @@
             "MAPPING": "PLC1::MAIN::eSelectMode",
             "SCHEMA": {
                 "$ref": "tchmi:server#/definitions/PLC1.E_MachineMode"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.MAIN.fbMachine.eMode": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::MAIN::fbMachine::eMode",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/PLC1.E_MachineMode"
+                    },
+                    {
+                        "propertyOrder": 2
+                    }
+                ]
             },
             "USEMAPPING": true
         },
@@ -3644,10 +3706,14 @@
                 "Login": 3,
                 "Logout": 3,
                 "PLC1.GVL_IO.bSIM_BottleSensor": 3,
+                "PLC1.GVL_IO.bSIM_LevelSensor": 3,
                 "PLC1.GVL_IO.eState": 3,
                 "PLC1.GVL_IO.g_bAlarmLamp": 3,
                 "PLC1.GVL_IO.g_bBottleSensor": 3,
+                "PLC1.GVL_IO.g_bConveyorMotor": 3,
                 "PLC1.GVL_IO.g_bLevelSensor": 3,
+                "PLC1.GVL_IO.g_bSIM_BottleSensor": 3,
+                "PLC1.GVL_IO.g_bSIM_LevelSensor": 3,
                 "PLC1.GVL_IO.g_bStartButton": 3,
                 "PLC1.GVL_IO.g_bStopButton": 3,
                 "PLC1.GVL_IO.g_bresetCounter": 3,
@@ -3656,7 +3722,9 @@
                 "PLC1.GVL_IO.g_eState": 3,
                 "PLC1.GVL_IO.g_nBottleCount": 3,
                 "PLC1.GVL_IO.g_sStatusofMachine": 3,
+                "PLC1.MAIN.bRunOnce": 3,
                 "PLC1.MAIN.eSelectMode": 3,
+                "PLC1.MAIN.fbMachine.eMode": 3,
                 "SetLocale": 3,
                 "SubscribeEvents": 3,
                 "TcHmiSqliteLogger.Diagnostics": 1,

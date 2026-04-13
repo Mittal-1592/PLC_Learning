@@ -12,7 +12,6 @@ VAR
     fbFillingUnit   : FB_FillingUnit;
     fbBottleCounter : FB_BottleCounter;
 	
-	fbtimer : TON;
 	tConveyerTime : TIME := T#5S;
 	tFillingTime : TIME := T#3S;
 	
@@ -61,25 +60,23 @@ CASE eState OF
 			GVL_IO.g_sStatusofMachine := 'Bottle is Moving';
 			GVL_IO.g_conveyorStatus := 'conveyor is running';
 			IF (emode = E_MachineMode.auto) THEN 
-					GVL_IO.bSIM_BottleSensor := FALSE;
+					GVL_IO.g_bSIM_BottleSensor := FALSE;
 					fbConveyor.start();
-					tonSimBottle(IN := NOT GVL_IO.bSIM_BottleSensor, PT := tConveyerTime);
+					tonSimBottle(IN := NOT GVL_IO.g_bSIM_BottleSensor, PT := tConveyerTime);
 					
 					IF tonSimBottle.Q THEN 
-						GVL_IO.bSIM_BottleSensor := TRUE;
+						GVL_IO.g_bSIM_BottleSensor := TRUE;
 						GVL_IO.g_eState := E_MachineState.Running;
 					END_IF
 					
-					IF GVL_IO.g_bBottleSensor OR GVL_IO.bSIM_BottleSensor THEN 
+					IF GVL_IO.g_bBottleSensor OR GVL_IO.g_bSIM_BottleSensor THEN 
 						fbConveyor.stop();
 						tonSimBottle(IN := FALSE);
 						eState := E_MachineState.Filling;
 					END_IF
 					
-					IF tonSimBottle.Q AND NOT (GVL_IO.g_bBottleSensor OR GVL_IO.bSIM_BottleSensor) THEN
-		
-						GVL_IO.g_bAlarmLamp := TRUE;
-					
+					IF tonSimBottle.Q AND NOT (GVL_IO.g_bBottleSensor OR GVL_IO.g_bSIM_BottleSensor) THEN		
+						GVL_IO.g_bAlarmLamp := TRUE;			
 						eState := E_MachineState.Stopped;		
 					END_IF
 					
@@ -96,20 +93,20 @@ CASE eState OF
 
     E_MachineState.Filling:
 			GVL_IO.g_sStatusofMachine := 'Bottle detected and filling started';
-			GVL_IO.g_conveyorStatus := 'conveyor is stopped';
+			GVL_IO.g_conveyorStatus := 'Conveyor is stopped';
 			IF (emode = E_MachineMode.auto) THEN		
-				GVL_IO.bSIM_LevelSensor := FALSE;
+				GVL_IO.g_bSIM_LevelSensor := FALSE;
 				fbFillingUnit.StartFill();
 				
-				tonSimLevel(IN := NOT GVL_IO.bSIM_LevelSensor, PT := tFillingTime);
+				tonSimLevel(IN := NOT GVL_IO.g_bSIM_LevelSensor, PT := tFillingTime);
 				
 				IF tonSimLevel.Q THEN 
 					GVL_IO.g_sStatusofMachine := 'Filling Completed';
-					GVL_IO.bSIM_LevelSensor := TRUE;
+					GVL_IO.g_bSIM_LevelSensor := TRUE;
 					GVL_IO.g_eState := E_MachineState.Filling;
 				END_IF
 				
-				IF GVL_IO.g_bLevelSensor OR GVL_IO.bSIM_LevelSensor THEN 
+				IF GVL_IO.g_bLevelSensor OR GVL_IO.g_bSIM_LevelSensor THEN 
 					fbFillingUnit.StopFill();
 					tonSimLevel(IN := FALSE);
 					
@@ -117,7 +114,7 @@ CASE eState OF
 					fbBottleCounter.BottleCount();			
 				END_IF
 				
-				IF tonSimLevel.Q AND NOT (GVL_IO.g_bLevelSensor OR GVL_IO.bSIM_LevelSensor) THEN
+				IF tonSimLevel.Q AND NOT (GVL_IO.g_bLevelSensor OR GVL_IO.g_bSIM_LevelSensor) THEN
 					GVL_IO.g_bAlarmLamp := TRUE;		
 					eState := E_MachineState.Stopped;
 				END_IF
@@ -132,8 +129,8 @@ CASE eState OF
 
     E_MachineState.Stopped:
 			stop();
-			GVL_IO.g_conveyorStatus := 'conveyor is stopped';
-			GVL_IO.g_sStatusofMachine := 'Process Complete Press start';
+			GVL_IO.g_conveyorStatus := 'Conveyor is stopped';
+			GVL_IO.g_sStatusofMachine := 'Process Completed';
 			fbConveyor.Stop();
 			fbFillingUnit.StopFill();
 			
@@ -200,7 +197,9 @@ END_IF]]></ST>
       <LineId Id="12" Count="0" />
       <LineId Id="291" Count="1" />
       <LineId Id="294" Count="0" />
-      <LineId Id="296" Count="30" />
+      <LineId Id="296" Count="18" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="318" Count="8" />
       <LineId Id="295" Count="0" />
       <LineId Id="293" Count="0" />
       <LineId Id="212" Count="0" />
@@ -209,7 +208,9 @@ END_IF]]></ST>
       <LineId Id="244" Count="0" />
       <LineId Id="282" Count="0" />
       <LineId Id="245" Count="0" />
-      <LineId Id="249" Count="22" />
+      <LineId Id="249" Count="13" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="264" Count="7" />
       <LineId Id="273" Count="2" />
       <LineId Id="277" Count="0" />
       <LineId Id="279" Count="0" />
