@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_SystemAlarms" Id="{a6afa0f4-e3c4-40dc-9118-61991b9ab81a}">
+    <Declaration><![CDATA[(*
+  ST_SystemAlarms
+  ---------------
+  All alarm flags and codes for the entire system.
+  Think of this as the dashboard warning lights on a car.
+  One instance lives in GVL_SystemState.stAlarms.
+  FB_AlarmManager writes to this every scan cycle.
+*)
+TYPE ST_SystemAlarms :
+STRUCT
+    // Individual alarm flags
+    bEmergencyStop          : BOOL;         // Alarm 100 — E-Stop pressed
+    bTemperatureAlarm       : BOOL;         // Alarm 200 — Temp out of range
+    bExpiredBatchFound      : BOOL;         // Alarm 300 — Expired batch detected
+    bQuarantineTriggered    : BOOL;         // Alarm 400 — Batch moved to quarantine
+    bASRSFault              : BOOL;         // Alarm 500 — ASRS crane/conveyor fault
+    bStorageRackFull        : BOOL;         // Alarm 600 — All 20 slots occupied
+    bHumidityAlarm          : BOOL;         // Alarm 700 — Humidity out of range
+
+    // Active alarm summary
+    nActiveAlarmCode        : INT;          // Highest priority active alarm (0 = none)
+    sActiveAlarmMessage     : STRING(80);   // Text description for HMI display
+
+    // Alarm history counter
+    nTotalAlarmsToday       : INT;          // How many alarms fired today
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

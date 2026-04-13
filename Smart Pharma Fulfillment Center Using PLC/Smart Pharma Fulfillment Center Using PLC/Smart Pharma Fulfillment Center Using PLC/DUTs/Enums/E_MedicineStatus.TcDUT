@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_MedicineStatus" Id="{7f098bb9-303d-4281-9f88-eabfd85e7bbc}">
+    <Declaration><![CDATA[(*
+  E_MedicineStatus
+  ----------------
+  Describes the current health/safety condition of a medicine batch.
+  Every batch in the system carries exactly one of these states at all times.
+  The lifecycle is: NORMAL → EXPIRING → EXPIRED → QUARANTINED
+  A recalled batch jumps directly to RECALLED → QUARANTINED.
+*)
+TYPE E_MedicineStatus :
+(
+    MEDICINE_EMPTY          := 0,   // Record slot unused — no batch here
+    MEDICINE_NORMAL         := 1,   // Batch is healthy, within expiry
+    MEDICINE_EXPIRING       := 2,   // Expiry within 30 days — dispatch soon
+    MEDICINE_EXPIRED        := 3,   // Past expiry — must be quarantined
+    MEDICINE_QUARANTINED    := 4,   // Locked in Zone D — cannot be used
+    MEDICINE_RECALLED       := 5,   // Manufacturer recall — must be quarantined
+    MEDICINE_DAMAGED        := 6    // Physical damage detected (future use)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

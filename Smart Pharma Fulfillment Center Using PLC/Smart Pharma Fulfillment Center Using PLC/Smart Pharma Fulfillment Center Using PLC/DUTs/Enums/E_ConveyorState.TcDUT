@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_ConveyorState" Id="{e1899363-32f4-47df-a4d6-3fb0ededb87d}">
+    <Declaration><![CDATA[(*
+  E_ConveyorState
+  ---------------
+  The current mechanical state of one conveyor belt.
+  Used by FB_ConveyorControl state machine.
+*)
+TYPE E_ConveyorState :
+(
+    CONV_IDLE       := 0,   // Belt stopped, waiting for command
+    CONV_MOVING     := 1,   // Belt running normally
+    CONV_BLOCKED    := 2,   // Physical obstruction detected
+    CONV_FAULT      := 3    // Motor/drive hardware failure
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

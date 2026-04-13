@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_ZoneID" Id="{3b8bda92-1958-4dbb-8a43-b37ecf54e1da}">
+    <Declaration><![CDATA[(*
+  E_ZoneID
+  --------
+  Identifies which physical zone of the warehouse a batch is located in.
+  Every batch record always knows its current location.
+*)
+TYPE E_ZoneID :
+(
+    ZONE_NONE           := 0,   // Not in any zone (dispatched or not yet placed)
+    ZONE_RECEIVING      := 1,   // Zone A — at the entry gate conveyor
+    ZONE_STORAGE        := 2,   // Zone B — on a rack slot
+    ZONE_ENV_CONTROL    := 3,   // Zone C — in controlled environment section
+    ZONE_QUARANTINE     := 4    // Zone D — in isolation area
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

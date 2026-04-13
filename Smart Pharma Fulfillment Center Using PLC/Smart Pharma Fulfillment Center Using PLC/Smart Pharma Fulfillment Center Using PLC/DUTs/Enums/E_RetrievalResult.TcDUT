@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_RetrievalResult" Id="{ba4f6a64-f285-43da-85dc-27c3cd019948}">
+    <Declaration><![CDATA[(*
+  E_RetrievalResult
+  -----------------
+  The outcome of a retrieval operation.
+  FB_StorageManager sets this after every retrieval attempt.
+  HMI reads this to tell the operator what happened.
+*)
+TYPE E_RetrievalResult :
+(
+    RETRIEVAL_NONE          := 0,   // No retrieval has been attempted yet
+    RETRIEVAL_SUCCESS       := 1,   // Batch dispatched successfully
+    RETRIEVAL_NOT_FOUND     := 2,   // Requested batch ID does not exist
+    RETRIEVAL_REARRANGING   := 3,   // ASRS crane is currently in motion
+    RETRIEVAL_FAULT         := 4    // Mechanical or system error occurred
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,281 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_ASRSCoordinator" Id="{88963860-2902-4cf7-853a-3feb18d63099}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_ASRSCoordinator
+  ------------------
+  The ASRS orchestrator — coordinates belt and crane together.
+  PRG_MAIN only needs to call THIS ONE FB for all ASRS operations.
+  Internally it creates and calls FB_ConveyorControl and FB_ASRSCrane.
+
+  STORE sequence (state machine steps 0→5):
+    0. Idle
+    1. Place batch on input conveyor, start belt forward
+    2. Wait for batch to reach ASRS entry sensor
+    3. Command crane to move to target slot
+    4. Wait for crane deposit confirmation
+    5. Update database → signal bStorageComplete
+
+  RETRIEVE sequence (steps 0, 10→15):
+    0. Idle
+   10. Command crane to target slot
+   11. Wait for crane retrieve confirmation
+   12. Crane returns to output conveyor
+   13. Crane hands batch to output conveyor
+   14. Start output conveyor reverse toward dispatch
+   15. Wait for batch to reach dispatch → signal bRetrievalComplete
+*)
+FUNCTION_BLOCK FB_ASRSCoordinator
+VAR_INPUT
+    bEnable                 : BOOL;
+    bCmd_Store              : BOOL;             // Rising edge: store this batch
+    bCmd_Retrieve           : BOOL;             // Rising edge: retrieve from this slot
+    stBatchToStore          : ST_MedicineBatch;
+    nSlotToRetrieve         : INT;              // Which slot to retrieve from
+    sRetrieveBatchID        : STRING(20);       // Batch ID being retrieved
+    dtNow                   : DATE_AND_TIME;
+END_VAR
+
+VAR_OUTPUT
+    bStorageComplete        : BOOL;             // Pulse: batch physically in slot
+    bRetrievalComplete      : BOOL;             // Pulse: batch physically at dispatch
+    bBusy                   : BOOL;
+    bFault                  : BOOL;
+    eCoordState             : E_ASRSState;
+    sStatusMessage          : STRING(80);
+END_VAR
+
+VAR
+    // Sub-FB instances (internal)
+    fbInputConv             : FB_ConveyorControl;
+    fbOutputConv            : FB_ConveyorControl;
+    fbCrane                 : FB_ASRSCrane;
+
+    // State machine
+    nState                  : INT := 0;
+
+    // Internal tracking
+    nWorkingSlot            : INT;
+    bStoreEdge              : BOOL;
+    bLastStore              : BOOL;
+    bRetrieveEdge           : BOOL;
+    bLastRetrieve           : BOOL;
+
+    // Reset timers for pulse outputs
+    tonResetStorage         : TON;
+    tonResetRetrieval       : TON;
+    i                       : INT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{ce83de50-05be-42f4-8a7f-b62fa5fe6be6}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Edge detection
+bStoreEdge    := bCmd_Store    AND NOT bLastStore;
+bLastStore    := bCmd_Store;
+bRetrieveEdge := bCmd_Retrieve AND NOT bLastRetrieve;
+bLastRetrieve := bCmd_Retrieve;
+
+// Auto-clear pulse outputs
+tonResetStorage(IN := bStorageComplete,   PT := T#100MS);
+tonResetRetrieval(IN := bRetrievalComplete, PT := T#100MS);
+IF tonResetStorage.Q   THEN bStorageComplete   := FALSE; END_IF
+IF tonResetRetrieval.Q THEN bRetrievalComplete := FALSE; END_IF
+
+// ── Call Input Conveyor ───────────────────────────────────────────────
+fbInputConv(
+    bEnable             := bEnable,
+    bCmd_StartForward   := (nState = 1),
+    bCmd_StartReverse   := FALSE,
+    bCmd_Stop           := (nState = 0 OR nState >= 3),
+    bSim_BatchAtEntry   := GVL_SimInputs.bSim_InputConv_AtEntry,
+    bSim_BatchAtDispatch := FALSE,
+    bSim_Blocked        := GVL_SimInputs.bSim_InputConv_Blocked,
+    fSim_BeltSpeed_ms   := GVL_SimInputs.fSim_InputConv_Speed
+);
+fbInputConv.Execute();
+
+// ── Call Output Conveyor ──────────────────────────────────────────────
+fbOutputConv(
+    bEnable             := bEnable,
+    bCmd_StartForward   := FALSE,
+    bCmd_StartReverse   := (nState = 14),
+    bCmd_Stop           := (nState = 0 OR nState < 14),
+    bSim_BatchAtEntry   := FALSE,
+    bSim_BatchAtDispatch := GVL_SimInputs.bSim_OutputConv_AtDisp,
+    bSim_Blocked        := GVL_SimInputs.bSim_OutputConv_Blocked,
+    fSim_BeltSpeed_ms   := GVL_SimInputs.fSim_InputConv_Speed
+);
+fbOutputConv.Execute();
+
+// ── Call Crane ────────────────────────────────────────────────────────
+fbCrane(
+    bEnable             := bEnable AND (nState >= 3),
+    bCmd_Store          := (nState = 3),
+    bCmd_Retrieve       := (nState = 10),
+    nTargetSlot         := nWorkingSlot,
+    sBatchIDToHandle    := stBatchToStore.sBatchID,
+    bSim_AtTarget       := GVL_SimInputs.bSim_Crane_AtTarget,
+    bSim_DepositDone    := GVL_SimInputs.bSim_Crane_DepositDone,
+    bSim_RetrieveDone   := GVL_SimInputs.bSim_Crane_RetrieveDone,
+    bSim_Fault          := GVL_SimInputs.bSim_Crane_Fault,
+    fSim_X_mm           := GVL_SimInputs.fSim_Crane_X_mm,
+    fSim_Y_mm           := GVL_SimInputs.fSim_Crane_Y_mm
+);
+fbCrane.Execute();
+
+bFault := fbInputConv.bFault OR fbOutputConv.bFault OR fbCrane.bFault;
+
+IF bFault AND nState <> 0 THEN
+    nState         := 0;
+    bBusy          := FALSE;
+    sStatusMessage := 'ASRS COORDINATOR: Fault — operation aborted';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── Coordinator State Machine ─────────────────────────────────────────
+CASE nState OF
+
+    0: // IDLE
+        bBusy          := FALSE;
+        eCoordState    := ASRS_IDLE;
+        sStatusMessage := 'ASRS Coordinator: Ready';
+
+        // Receive store command
+        IF bStoreEdge THEN
+            nWorkingSlot := 0;
+            // Find free slot
+            FOR i := 1 TO GVL_Config.C_MAX_SLOTS DO
+                IF NOT GVL_MedicineDB.astRackSlots[i].bOccupied THEN
+                    nWorkingSlot := i;
+                    EXIT;
+                END_IF
+            END_FOR
+            IF nWorkingSlot > 0 THEN
+                bBusy := TRUE;
+                GVL_MedicineDB.stInputConveyor.bBatchOnBelt   := TRUE;
+                GVL_MedicineDB.stInputConveyor.sBatchIDOnBelt := stBatchToStore.sBatchID;
+                nState := 1;
+                sStatusMessage := CONCAT('ASRS: Store sequence start — slot ',
+                                    INT_TO_STRING(nWorkingSlot));
+            END_IF
+        END_IF
+
+        // Receive retrieve command
+        IF bRetrieveEdge AND nSlotToRetrieve > 0 THEN
+            nWorkingSlot := nSlotToRetrieve;
+            bBusy        := TRUE;
+            nState       := 10;
+            sStatusMessage := CONCAT('ASRS: Retrieve sequence start — slot ',
+                                INT_TO_STRING(nWorkingSlot));
+        END_IF
+
+    // ── STORE SEQUENCE ────────────────────────────────────────────────
+    1: // Input conveyor running forward
+        sStatusMessage := 'ASRS: Input conveyor — batch moving to crane';
+        eCoordState    := ASRS_IDLE;
+        IF fbInputConv.stStatus.bAtASRSEntry THEN
+            nState := 3;
+        END_IF
+
+    3: // Crane moving to slot / depositing
+        eCoordState    := fbCrane.eState;
+        sStatusMessage := fbCrane.sStatusMessage;
+        IF fbCrane.bDepositComplete THEN
+            nState := 4;
+        END_IF
+
+    4: // Deposit confirmed — update database
+        // Mark rack slot as occupied
+        GVL_MedicineDB.astRackSlots[nWorkingSlot].bOccupied         := TRUE;
+        GVL_MedicineDB.astRackSlots[nWorkingSlot].sBatchID          := stBatchToStore.sBatchID;
+        GVL_MedicineDB.astRackSlots[nWorkingSlot].fCurrentWeight_kg := stBatchToStore.fWeight_kg;
+
+        // Update batch record zone and slot
+        FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+            IF GVL_MedicineDB.astBatches[i].sBatchID = stBatchToStore.sBatchID THEN
+                GVL_MedicineDB.astBatches[i].eCurrentZone := ZONE_STORAGE;
+                GVL_MedicineDB.astBatches[i].nRackSlot    := nWorkingSlot;
+                EXIT;
+            END_IF
+        END_FOR
+
+        // Clear input conveyor
+        GVL_MedicineDB.stInputConveyor.bBatchOnBelt   := FALSE;
+        GVL_MedicineDB.stInputConveyor.bAtASRSEntry   := FALSE;
+        GVL_MedicineDB.stInputConveyor.sBatchIDOnBelt := '';
+
+        bStorageComplete := TRUE;
+        bBusy            := FALSE;
+        nState           := 0;
+        sStatusMessage   := CONCAT('ASRS: STORED — ', stBatchToStore.sBatchID);
+        sStatusMessage   := CONCAT(sStatusMessage, ' in slot ');
+        sStatusMessage   := CONCAT(sStatusMessage, INT_TO_STRING(nWorkingSlot));
+
+    // ── RETRIEVE SEQUENCE ─────────────────────────────────────────────
+    10: // Crane moving to slot / retrieving
+        eCoordState    := fbCrane.eState;
+        sStatusMessage := fbCrane.sStatusMessage;
+        IF fbCrane.bRetrieveComplete THEN
+            nState := 12;
+        END_IF
+
+    12: // Crane returning to output conveyor
+        eCoordState    := ASRS_MOVING_TO_CONV;
+        sStatusMessage := 'ASRS: Crane carrying batch to output conveyor';
+        IF fbCrane.bHandoverComplete THEN
+            // Place on output conveyor
+            GVL_MedicineDB.stOutputConveyor.bBatchOnBelt   := TRUE;
+            GVL_MedicineDB.stOutputConveyor.sBatchIDOnBelt := sRetrieveBatchID;
+            // Free the rack slot
+            GVL_MedicineDB.astRackSlots[nWorkingSlot].bOccupied         := FALSE;
+            GVL_MedicineDB.astRackSlots[nWorkingSlot].sBatchID          := '';
+            GVL_MedicineDB.astRackSlots[nWorkingSlot].fCurrentWeight_kg := 0.0;
+            // Clear batch record
+            FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+                IF GVL_MedicineDB.astBatches[i].sBatchID = sRetrieveBatchID THEN
+                    GVL_MedicineDB.astBatches[i].eCurrentZone := ZONE_NONE;
+                    GVL_MedicineDB.astBatches[i].nRackSlot    := 0;
+                    GVL_MedicineDB.astBatches[i].bIsOccupied  := FALSE;
+                    EXIT;
+                END_IF
+            END_FOR
+            nState := 14;
+        END_IF
+
+    14: // Output conveyor running to dispatch
+        eCoordState    := ASRS_HANDING_OVER;
+        sStatusMessage := 'ASRS: Output conveyor — batch moving to dispatch';
+        IF fbOutputConv.stStatus.bAtDispatch THEN
+            GVL_MedicineDB.stOutputConveyor.bBatchOnBelt   := FALSE;
+            GVL_MedicineDB.stOutputConveyor.sBatchIDOnBelt := '';
+            bRetrievalComplete := TRUE;
+            bBusy              := FALSE;
+            nState             := 0;
+            sStatusMessage     := CONCAT('ASRS: DISPATCHED — ', sRetrieveBatchID);
+        END_IF
+
+END_CASE
+
+// Write conveyor status to GVL
+GVL_MedicineDB.stInputConveyor  := fbInputConv.stStatus;
+GVL_MedicineDB.stOutputConveyor := fbOutputConv.stStatus;
+
+Execute := bBusy;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ASRSCoordinator">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASRSCoordinator.Execute">
+      <LineId Id="6" Count="191" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

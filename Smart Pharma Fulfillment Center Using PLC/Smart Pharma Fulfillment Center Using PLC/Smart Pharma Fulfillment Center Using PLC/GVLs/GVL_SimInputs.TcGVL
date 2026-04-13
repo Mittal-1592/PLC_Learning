@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <GVL Name="GVL_SimInputs" Id="{d9fa2d38-8455-4f48-bdf7-fddea407a2c5}">
+    <Declaration><![CDATA[(*
+  GVL_SimInputs
+  -------------
+  Simulated hardware inputs — your virtual sensor panel.
+  Since there is no real hardware, YOU set these values
+  manually in the Watch Window or via HMI buttons.
+  Every value here replaces a real physical sensor.
+
+  IMPORTANT: In a real system, these would be mapped to
+  actual I/O addresses (%I0.0, %IW0, etc.).
+  In simulation, you write to them directly.
+*)
+VAR_GLOBAL
+
+    // ── Zone A Sensors ─────────────────────────────────────────
+    bSim_BatchArrived       : BOOL;             // Proximity sensor at gate
+    sSim_BatchID            : STRING(20);       // Barcode scanner result
+    sSim_MedicineName       : STRING(30);       // Medicine name from scan
+    sSim_Manufacturer       : STRING(30);       // Manufacturer from scan
+    fSim_Weight_kg          : REAL;             // Load cell reading (kg)
+    fSim_TempRequired_C     : REAL;             // Required storage temp from label
+    dtSim_ExpiryDate        : DATE_AND_TIME;    // Expiry date from label
+
+    // ── Zone B / Retrieval ─────────────────────────────────────
+    bSim_RetrievalRequest   : BOOL;             // Operator requests batch
+    sSim_RetrieveBatchID    : STRING(20);       // Specific ID (blank = FIFO)
+
+    // ── Recall ─────────────────────────────────────────────────
+    bSim_RecallTrigger      : BOOL;             // Manufacturer recall signal
+    sSim_RecallBatchID      : STRING(20);       // Which batch to recall
+
+    // ── Zone C Sensors ─────────────────────────────────────────
+    fSim_Temperature_C      : REAL := 15.0;     // Temperature sensor reading
+    fSim_Humidity_Pct       : REAL := 40.0;     // Humidity sensor reading
+
+    // ── Input Conveyor Sensors ─────────────────────────────────
+    bSim_InputConv_AtEntry  : BOOL;             // Batch reached ASRS entry sensor
+    bSim_InputConv_Blocked  : BOOL;             // Physical obstruction on input belt
+    fSim_InputConv_Speed    : REAL := 0.3;      // Belt speed setpoint (m/s)
+
+    // ── Output Conveyor Sensors ────────────────────────────────
+    bSim_OutputConv_AtDisp  : BOOL;             // Batch reached dispatch exit sensor
+    bSim_OutputConv_Blocked : BOOL;             // Physical obstruction on output belt
+
+    // ── ASRS Crane Sensors ─────────────────────────────────────
+    bSim_Crane_AtTarget     : BOOL;             // Crane position sensor: at target
+    bSim_Crane_DepositDone  : BOOL;             // Arm sensor: deposit completed
+    bSim_Crane_RetrieveDone : BOOL;             // Gripper sensor: retrieve completed
+    bSim_Crane_Fault        : BOOL;             // Drive fault signal from crane VFD
+    fSim_Crane_X_mm         : REAL;             // Encoder: current X position
+    fSim_Crane_Y_mm         : REAL;             // Encoder: current Y position
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

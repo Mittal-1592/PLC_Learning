@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_ASRSPosition" Id="{2a0ab6db-03ae-4bd0-afc0-a7f9bac45f71}">
+    <Declaration><![CDATA[(*
+  ST_ASRSPosition
+  ---------------
+  Describes a physical position of the ASRS crane.
+  Used both for current position and target position.
+  Two instances in GVL_MedicineDB:
+    stASRS_CurrentPos — where the crane IS right now
+    stASRS_TargetPos  — where the crane NEEDS to go
+*)
+TYPE ST_ASRSPosition :
+STRUCT
+    // Rack coordinates
+    nColumn         : INT;      // Target column (1–4)
+    nRow            : INT;      // Target row (1–5)
+    nSlotNumber     : INT;      // Target slot (1–20), 0 = home position
+
+    // Physical coordinates (millimeters from home origin)
+    fX_mm           : REAL;     // Horizontal distance from home
+    fY_mm           : REAL;     // Vertical height from ground
+
+    // Status
+    bAtTarget       : BOOL;     // TRUE = crane has reached this position
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

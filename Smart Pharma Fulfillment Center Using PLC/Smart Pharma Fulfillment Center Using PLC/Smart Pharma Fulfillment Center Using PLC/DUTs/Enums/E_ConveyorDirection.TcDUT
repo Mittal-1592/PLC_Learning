@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_ConveyorDirection" Id="{65c801b0-5e80-4599-aa4e-59afb9ec6bba}">
+    <Declaration><![CDATA[(*
+  E_ConveyorDirection
+  -------------------
+  Which direction the conveyor belt is running.
+  FORWARD = toward ASRS entry point (for storing)
+  REVERSE = toward dispatch exit (for retrieving)
+*)
+TYPE E_ConveyorDirection :
+(
+    CONV_DIR_NONE       := 0,   // Belt is stopped
+    CONV_DIR_FORWARD    := 1,   // Moving toward ASRS crane entry
+    CONV_DIR_REVERSE    := 2    // Moving toward dispatch exit
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

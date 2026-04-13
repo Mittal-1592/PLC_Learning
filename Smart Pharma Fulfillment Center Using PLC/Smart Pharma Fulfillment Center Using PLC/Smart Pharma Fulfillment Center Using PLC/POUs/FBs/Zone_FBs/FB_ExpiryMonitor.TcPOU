@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_ExpiryMonitor" Id="{a0313c51-f957-464d-8db6-8c20564bae26}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_ExpiryMonitor
+  ----------------
+  Responsibility: Continuous batch expiry surveillance.
+  
+  Runs EVERY scan cycle (no edge detection needed here).
+  Checks all 20 batch records and updates their eStatus.
+  
+  Status progression:
+    NORMAL → EXPIRING (within 30 days) → EXPIRED
+  
+  Once EXPIRED, the batch is NOT quarantined here.
+  FB_QuarantineHandler is responsible for that action.
+  This FB only DETECTS — it does not ACT on the storage.
+*)
+FUNCTION_BLOCK FB_ExpiryMonitor
+VAR_INPUT
+    dtNow               : DATE_AND_TIME;
+    nWarningDays        : INT := 30;    // Days before expiry to issue warning
+END_VAR
+
+VAR_OUTPUT
+    nExpiredCount       : INT;          // How many batches are currently expired
+    nExpiringCount      : INT;          // How many are within warning period
+    nNormalCount        : INT;          // How many are healthy
+END_VAR
+
+VAR
+    i                   : INT;
+    dwNow               : DWORD;
+    dwExpiry            : DWORD;
+    nDaysRemaining      : INT;
+    nSecondsPerDay      : DWORD := 86400;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{addb4018-94b2-4edf-bd3f-749c3efbc736}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nExpiredCount  := 0;
+nExpiringCount := 0;
+nNormalCount   := 0;
+
+dwNow := DT_TO_DWORD(dtNow);
+
+FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+
+    // Only check occupied, non-quarantined, non-recalled records
+    IF NOT GVL_MedicineDB.astBatches[i].bIsOccupied THEN
+        CONTINUE;
+    END_IF
+    IF GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_QUARANTINED
+       OR GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_RECALLED THEN
+        CONTINUE;
+    END_IF
+
+    dwExpiry := DT_TO_DWORD(GVL_MedicineDB.astBatches[i].dtExpiryDate);
+
+    // Check if already expired
+    IF dwExpiry <= dwNow THEN
+        GVL_MedicineDB.astBatches[i].eStatus := MEDICINE_EXPIRED;
+        nExpiredCount := nExpiredCount + 1;
+
+    // Check if within warning period
+    ELSIF (dwExpiry - dwNow) / nSecondsPerDay <= INT_TO_DWORD(nWarningDays) THEN
+        GVL_MedicineDB.astBatches[i].eStatus := MEDICINE_EXPIRING;
+        nExpiringCount := nExpiringCount + 1;
+
+    ELSE
+        GVL_MedicineDB.astBatches[i].eStatus := MEDICINE_NORMAL;
+        nNormalCount := nNormalCount + 1;
+    END_IF
+
+END_FOR
+
+// Update alarm flag
+GVL_SystemState.stAlarms.bExpiredBatchFound := (nExpiredCount > 0);
+
+Execute := (nExpiredCount > 0 OR nExpiringCount > 0);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ExpiryMonitor">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ExpiryMonitor.Execute">
+      <LineId Id="10" Count="39" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

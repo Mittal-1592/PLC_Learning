@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_MedicineBatch" Id="{4d9d2c66-d7a6-4ab9-84eb-01e8e82632cd}">
+    <Declaration><![CDATA[(*
+  ST_MedicineBatch
+  ----------------
+  The complete identity record ("passport") of one medicine batch.
+  This is the most important data structure in the entire system.
+  20 of these records live in GVL_MedicineDB.astBatches[1..20].
+  One record = one physical box/container of medicine.
+*)
+TYPE ST_MedicineBatch :
+STRUCT
+    // Identity
+    sBatchID            : STRING(20);       // Unique batch code (e.g. 'BATCH_2026_001')
+    sMedicineName       : STRING(30);       // Medicine description (e.g. 'Paracetamol 500mg')
+    sManufacturer       : STRING(30);       // Manufacturer name
+
+    // Physical properties
+    fWeight_kg          : REAL;             // Batch weight in kilograms
+    fTempRequired_C     : REAL;             // Required storage temperature in °C
+
+    // Time tracking
+    dtEntryTime         : DATE_AND_TIME;    // When batch entered the warehouse
+    dtExpiryDate        : DATE_AND_TIME;    // When batch expires
+
+    // Current state
+    eStatus             : E_MedicineStatus; // Current health status
+    eCurrentZone        : E_ZoneID;         // Current physical location
+
+    // Storage position
+    nRackSlot           : INT;              // Which slot (1–20), 0 = not in rack
+
+    // Record management
+    bIsOccupied         : BOOL;             // TRUE = this array slot is in use
+    nRecordIndex        : INT;              // Index in astBatches array (1–20)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

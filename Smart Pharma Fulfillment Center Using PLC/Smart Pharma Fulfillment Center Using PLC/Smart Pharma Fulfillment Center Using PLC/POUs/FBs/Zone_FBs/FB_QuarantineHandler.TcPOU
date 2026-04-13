@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_QuarantineHandler" Id="{8ffae50b-3f2e-4bb4-b4ec-3fe59dc2d26b}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_QuarantineHandler
+  --------------------
+  Implements: I_Zone
+  Responsibility: Zone D — Automatic isolation of unsafe batches.
+
+  Runs EVERY scan cycle.
+  Scans all batch records for EXPIRED or RECALLED status.
+  For each found:
+  1. Changes status to QUARANTINED
+  2. Changes zone to ZONE_QUARANTINE
+  3. Frees the rack slot (so healthy batches can use it)
+  4. Sets quarantine alarm
+
+  NOTE: Once quarantined, a batch can only be removed by
+  a maintenance operator — not by the automatic system.
+*)
+FUNCTION_BLOCK FB_QuarantineHandler IMPLEMENTS I_Zone
+VAR_INPUT
+    bEnable         : BOOL;
+    dtNow           : DATE_AND_TIME;
+END_VAR
+
+VAR_OUTPUT
+    nQuarantineCount    : INT;          // Total batches currently in Zone D
+    bQuarantineAlarm    : BOOL;         // TRUE if any batch in quarantine
+    sLastQuarantined    : STRING(20);   // ID of most recently quarantined batch
+    sStatusMessage      : STRING(80);
+END_VAR
+
+VAR
+    i               : INT;
+    bNewQuarantine  : BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{c5487576-60ba-452c-84b6-e46effada16c}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Execute : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nQuarantineCount := 0;
+bNewQuarantine   := FALSE;
+
+FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+
+    IF NOT GVL_MedicineDB.astBatches[i].bIsOccupied THEN
+        CONTINUE;
+    END_IF
+
+    // Auto-quarantine expired and recalled batches
+    IF GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_EXPIRED
+       OR GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_RECALLED THEN
+
+        // Only act if not already quarantined
+        IF GVL_MedicineDB.astBatches[i].eCurrentZone <> ZONE_QUARANTINE THEN
+            GVL_MedicineDB.astBatches[i].eStatus      := MEDICINE_QUARANTINED;
+            GVL_MedicineDB.astBatches[i].eCurrentZone := ZONE_QUARANTINE;
+
+            // Free the physical rack slot so other batches can use it
+            IF GVL_MedicineDB.astBatches[i].nRackSlot > 0
+               AND GVL_MedicineDB.astBatches[i].nRackSlot <= GVL_Config.C_MAX_SLOTS THEN
+                GVL_MedicineDB.astRackSlots[GVL_MedicineDB.astBatches[i].nRackSlot].bOccupied  := FALSE;
+                GVL_MedicineDB.astRackSlots[GVL_MedicineDB.astBatches[i].nRackSlot].sBatchID   := '';
+                GVL_MedicineDB.astRackSlots[GVL_MedicineDB.astBatches[i].nRackSlot].fCurrentWeight_kg := 0.0;
+                GVL_MedicineDB.astBatches[i].nRackSlot := 0;
+            END_IF
+
+            sLastQuarantined := GVL_MedicineDB.astBatches[i].sBatchID;
+            bNewQuarantine   := TRUE;
+            GVL_SystemState.nTotalQuarantinedToday := GVL_SystemState.nTotalQuarantinedToday + 1;
+        END_IF
+    END_IF
+
+    // Count all quarantined batches
+    IF GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_QUARANTINED THEN
+        nQuarantineCount := nQuarantineCount + 1;
+    END_IF
+
+END_FOR
+
+bQuarantineAlarm := (nQuarantineCount > 0);
+GVL_SystemState.stAlarms.bQuarantineTriggered := bQuarantineAlarm;
+
+IF nQuarantineCount = 0 THEN
+    sStatusMessage := 'Zone D: Clear — no quarantined batches';
+ELSE
+    sStatusMessage := CONCAT('Zone D: ', INT_TO_STRING(nQuarantineCount));
+    sStatusMessage := CONCAT(sStatusMessage, ' batch(es) in isolation');
+END_IF
+
+Execute := bNewQuarantine;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="IsEnabled" Id="{9cf8f2e4-9042-4f21-8034-b30da9086fa0}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{43d594df-e75c-4ffd-af02-288584efdb55}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsEnabled := bEnable;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{f489e960-65d3-41ff-a3c4-92a6d546bebf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="IsHealthy" Id="{27029c9a-eebc-4983-aff8-80e8595c2c17}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsHealthy : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{0d402525-353e-46df-a349-f712bc997798}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsHealthy := TRUE;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{09decb0d-5e58-4563-911d-36305ae9f404}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="Reset" Id="{ac59811e-04f4-4d51-8ec7-95db1987ccd4}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Reset : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sLastQuarantined := '';
+sStatusMessage   := 'Zone D: Reset complete';
+Reset := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StatusMessage" Id="{da61e27a-e0f9-48b1-bacb-61cc43539e73}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY StatusMessage : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{97019478-29f1-496b-ae1f-173e17fea0cb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StatusMessage := sStatusMessage;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{050c4e7f-7207-4074-a7e0-9724cbe4c76c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_QuarantineHandler">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.Execute">
+      <LineId Id="5" Count="49" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.IsEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.IsEnabled.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.IsHealthy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.IsHealthy.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.Reset">
+      <LineId Id="5" Count="1" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.StatusMessage.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_QuarantineHandler.StatusMessage.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_ConveyorControl" Id="{d66f57c3-0faf-41ba-9b69-712ce0338251}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_ConveyorControl
+  ------------------
+  Manages ONE physical conveyor belt as a state machine.
+  FB_ASRSCoordinator creates TWO instances:
+    fbInputConv  — carries batches from Zone A gate TO ASRS crane entry
+    fbOutputConv — carries batches FROM ASRS crane exit TO dispatch area
+
+  STATE MACHINE:
+    CONV_IDLE ──(start fwd)──► CONV_MOVING ──(at ASRS entry)──► CONV_IDLE (bAtASRSEntry=TRUE)
+    CONV_IDLE ──(start rev)──► CONV_MOVING ──(at dispatch)────► CONV_IDLE (bAtDispatch=TRUE)
+    CONV_MOVING ──(blocked)──► CONV_BLOCKED
+    CONV_MOVING ──(timeout)──► CONV_FAULT
+*)
+FUNCTION_BLOCK FB_ConveyorControl
+VAR_INPUT
+    bEnable                 : BOOL;
+    bCmd_StartForward       : BOOL;         // Command: run toward ASRS entry
+    bCmd_StartReverse       : BOOL;         // Command: run toward dispatch exit
+    bCmd_Stop               : BOOL;         // Command: stop belt immediately
+    // Simulated sensor inputs
+    bSim_BatchAtEntry       : BOOL;         // Proximity sensor at ASRS entry
+    bSim_BatchAtDispatch    : BOOL;         // Proximity sensor at dispatch exit
+    bSim_Blocked            : BOOL;         // Obstruction sensor
+    fSim_BeltSpeed_ms       : REAL;         // Speed setpoint
+END_VAR
+
+VAR_OUTPUT
+    stStatus                : ST_ConveyorStatus;    // Complete belt status
+    bMotorON                : BOOL;                 // Motor contactor output
+    bFault                  : BOOL;
+END_VAR
+
+VAR
+    // Timers
+    tonTravelTimer          : TON;          // Max time for batch to reach sensor
+    tonBlockTimeout         : TON;          // Watchdog for blockage duration
+
+    // Edge detection
+    bLastFwd                : BOOL;
+    bLastRev                : BOOL;
+    bFwdEdge                : BOOL;
+    bRevEdge                : BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{325a9173-5058-4750-bdfd-bd5010503231}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Edge detection
+bFwdEdge := bCmd_StartForward AND NOT bLastFwd;
+bRevEdge := bCmd_StartReverse AND NOT bLastRev;
+bLastFwd := bCmd_StartForward;
+bLastRev := bCmd_StartReverse;
+
+// Travel timer — how long belt can run before considering it a fault
+tonTravelTimer(
+    IN := (stStatus.eState = CONV_MOVING),
+    PT := GVL_Config.C_CONV_BLOCK_TIMEOUT
+);
+
+IF NOT bEnable THEN
+    stStatus.eState         := CONV_IDLE;
+    stStatus.eDirection     := CONV_DIR_NONE;
+    bMotorON                := FALSE;
+    stStatus.bFault         := FALSE;
+    stStatus.sFaultMessage  := '';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// Blockage takes priority
+IF bSim_Blocked AND stStatus.eState = CONV_MOVING THEN
+    stStatus.eState         := CONV_BLOCKED;
+    bMotorON                := FALSE;
+    bFault                  := TRUE;
+    stStatus.bFault         := TRUE;
+    stStatus.sFaultMessage  := 'Belt blocked — clear obstruction';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// Timeout fault
+IF tonTravelTimer.Q THEN
+    stStatus.eState         := CONV_FAULT;
+    bMotorON                := FALSE;
+    bFault                  := TRUE;
+    stStatus.bFault         := TRUE;
+    stStatus.sFaultMessage  := 'Conveyor timeout — batch sensor not triggered';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+CASE stStatus.eState OF
+
+    CONV_IDLE:
+        bMotorON        := FALSE;
+        bFault          := FALSE;
+        stStatus.bFault := FALSE;
+
+        IF bFwdEdge AND stStatus.bBatchOnBelt THEN
+            stStatus.eState         := CONV_MOVING;
+            stStatus.eDirection     := CONV_DIR_FORWARD;
+            stStatus.fBeltSpeed_ms  := fSim_BeltSpeed_ms;
+            stStatus.bAtASRSEntry   := FALSE;
+            stStatus.bAtDispatch    := FALSE;
+        END_IF
+
+        IF bRevEdge AND stStatus.bBatchOnBelt THEN
+            stStatus.eState         := CONV_MOVING;
+            stStatus.eDirection     := CONV_DIR_REVERSE;
+            stStatus.fBeltSpeed_ms  := fSim_BeltSpeed_ms;
+            stStatus.bAtASRSEntry   := FALSE;
+            stStatus.bAtDispatch    := FALSE;
+        END_IF
+
+    CONV_MOVING:
+        bMotorON := TRUE;
+
+        IF bCmd_Stop THEN
+            stStatus.eState     := CONV_IDLE;
+            stStatus.eDirection := CONV_DIR_NONE;
+            bMotorON            := FALSE;
+        END_IF
+
+        // Forward: batch arriving at ASRS
+        IF stStatus.eDirection = CONV_DIR_FORWARD THEN
+            IF bSim_BatchAtEntry OR tonTravelTimer.Q THEN
+                stStatus.eState         := CONV_IDLE;
+                stStatus.eDirection     := CONV_DIR_NONE;
+                stStatus.bAtASRSEntry   := TRUE;
+                bMotorON                := FALSE;
+            END_IF
+        END_IF
+
+        // Reverse: batch arriving at dispatch
+        IF stStatus.eDirection = CONV_DIR_REVERSE THEN
+            IF bSim_BatchAtDispatch OR tonTravelTimer.Q THEN
+                stStatus.eState             := CONV_IDLE;
+                stStatus.eDirection         := CONV_DIR_NONE;
+                stStatus.bAtDispatch        := TRUE;
+                stStatus.bBatchOnBelt       := FALSE;
+                stStatus.sBatchIDOnBelt     := '';
+                bMotorON                    := FALSE;
+            END_IF
+        END_IF
+
+END_CASE
+
+Execute := (stStatus.eState = CONV_MOVING);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ConveyorControl">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ConveyorControl.Execute">
+      <LineId Id="6" Count="99" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

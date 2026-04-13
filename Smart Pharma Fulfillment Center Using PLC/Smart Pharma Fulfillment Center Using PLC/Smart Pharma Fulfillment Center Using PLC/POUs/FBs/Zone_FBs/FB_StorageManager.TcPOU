@@ -1,0 +1,338 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_StorageManager" Id="{5fa63067-5ab7-4384-9dab-8457063a1f0a}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_StorageManager
+  -----------------
+  Implements: I_Zone
+  Responsibility: Zone B — Manages rack slots and FIFO retrieval logic.
+
+  WHAT IT DOES:
+  STORE:
+  1. Receives accepted batch from FB_ReceivingZone
+  2. Finds first available free slot in astRackSlots[1..20]
+  3. Sends command to FB_ASRSCoordinator with slot number
+  4. WAITS for ASRS to confirm physical placement
+  5. Only then marks slot as occupied in database
+
+  RETRIEVE:
+  1. If sBatchIDToGet is empty → FIFO mode: finds batch with oldest dtEntryTime
+  2. If sBatchIDToGet has a value → specific batch mode: finds that exact batch
+  3. Sends slot number to FB_ASRSCoordinator
+  4. WAITS for ASRS to confirm retrieval complete
+  5. Clears the slot in database
+*)
+FUNCTION_BLOCK FB_StorageManager IMPLEMENTS I_Zone
+VAR_INPUT
+    bEnable                 : BOOL;
+    bSafeToOperate          : BOOL;
+    bStoreRequest           : BOOL;             // Rising edge: new batch to store
+    stBatchToStore          : ST_MedicineBatch; // Batch data from FB_ReceivingZone
+    bRetrieveRequest        : BOOL;             // Rising edge: retrieve a batch
+    sBatchIDToGet           : STRING(20);       // Specific ID or '' for FIFO
+    dtNow                   : DATE_AND_TIME;
+    // ASRS feedback
+    bASRS_StoreDone         : BOOL;             // ASRS confirmed deposit complete
+    bASRS_RetrieveDone      : BOOL;             // ASRS confirmed retrieval complete
+END_VAR
+
+VAR_OUTPUT
+    // To FB_ASRSCoordinator
+    bCmd_Store              : BOOL;             // Command: start storage sequence
+    bCmd_Retrieve           : BOOL;             // Command: start retrieval sequence
+    nCmd_TargetSlot         : INT;              // Which slot ASRS should use
+    stCmd_BatchData         : ST_MedicineBatch; // Batch data for ASRS reference
+
+    // Operation results
+    bStoreSuccess           : BOOL;             // Pulse: storage completed
+    bStoreFull              : BOOL;             // TRUE when all 20 slots occupied
+    eRetrievalResult        : E_RetrievalResult;
+    stRetrievedBatch        : ST_MedicineBatch;
+
+    // Counts
+    nFreeSlots              : INT;
+    nOccupiedSlots          : INT;
+
+    sStatusMessage          : STRING(80);
+END_VAR
+
+VAR
+    // Edge detection
+    bLastStore              : BOOL;
+    bLastRetrieve           : BOOL;
+    bStoreEdge              : BOOL;
+    bRetrieveEdge           : BOOL;
+
+    // Internal state
+    bWaitingForASRS         : BOOL;             // TRUE while ASRS is doing work
+    eCurrentOperation       : INT;              // 0=idle, 1=storing, 2=retrieving
+
+    // Loop variable
+    i                       : INT;
+    nFoundSlot              : INT;
+    nOldestIdx              : INT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{86736dab-38f9-43e5-b103-42864dd2ed15}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Execute : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ── Edge detection ────────────────────────────────────────────────────
+bStoreEdge    := bStoreRequest    AND NOT bLastStore;
+bLastStore    := bStoreRequest;
+bRetrieveEdge := bRetrieveRequest AND NOT bLastRetrieve;
+bLastRetrieve := bRetrieveRequest;
+
+// ── Count free/occupied slots (runs every cycle) ──────────────────────
+nFreeSlots     := 0;
+nOccupiedSlots := 0;
+FOR i := 1 TO GVL_Config.C_MAX_SLOTS DO
+    IF GVL_MedicineDB.astRackSlots[i].bOccupied THEN
+        nOccupiedSlots := nOccupiedSlots + 1;
+    ELSE
+        nFreeSlots := nFreeSlots + 1;
+    END_IF
+END_FOR
+bStoreFull := (nFreeSlots = 0);
+GVL_MedicineDB.nFreeSlots     := nFreeSlots;
+GVL_MedicineDB.nOccupiedSlots := nOccupiedSlots;
+
+IF NOT (bEnable AND bSafeToOperate) THEN
+    sStatusMessage := 'Zone B: Disabled';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── Handle ASRS completion callbacks ─────────────────────────────────
+IF bASRS_StoreDone AND bWaitingForASRS AND eCurrentOperation = 1 THEN
+    bWaitingForASRS  := FALSE;
+    bStoreSuccess    := TRUE;
+    bCmd_Store       := FALSE;
+    eCurrentOperation := 0;
+    GVL_SystemState.nTotalStoredToday := GVL_SystemState.nTotalStoredToday + 1;
+    sStatusMessage := CONCAT('Zone B: Stored — ', stBatchToStore.sBatchID);
+    Execute := TRUE;
+    RETURN;
+END_IF
+
+IF bASRS_RetrieveDone AND bWaitingForASRS AND eCurrentOperation = 2 THEN
+    bWaitingForASRS   := FALSE;
+    bCmd_Retrieve     := FALSE;
+    eRetrievalResult  := RETRIEVAL_SUCCESS;
+    eCurrentOperation := 0;
+    GVL_MedicineDB.sLastDispatchedBatch := stRetrievedBatch.sBatchID;
+    GVL_SystemState.nTotalRetrievedToday := GVL_SystemState.nTotalRetrievedToday + 1;
+    sStatusMessage := CONCAT('Zone B: Dispatched — ', stRetrievedBatch.sBatchID);
+    Execute := TRUE;
+    RETURN;
+END_IF
+
+// ── Already waiting for ASRS — do not issue new commands ─────────────
+IF bWaitingForASRS THEN
+    sStatusMessage := CONCAT('Zone B: ASRS busy — state ',
+                       INT_TO_STRING(eCurrentOperation));
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── STORE REQUEST ─────────────────────────────────────────────────────
+IF bStoreEdge AND NOT bStoreFull THEN
+    // Find first free rack slot
+    nFoundSlot := 0;
+    FOR i := 1 TO GVL_Config.C_MAX_SLOTS DO
+        IF NOT GVL_MedicineDB.astRackSlots[i].bOccupied THEN
+            nFoundSlot := i;
+            EXIT;
+        END_IF
+    END_FOR
+
+    IF nFoundSlot > 0 THEN
+        nCmd_TargetSlot     := nFoundSlot;
+        stCmd_BatchData     := stBatchToStore;
+        bCmd_Store          := TRUE;
+        bWaitingForASRS     := TRUE;
+        eCurrentOperation   := 1;
+        sStatusMessage := CONCAT('Zone B: Storing to slot ',
+                            INT_TO_STRING(nFoundSlot));
+    END_IF
+END_IF
+
+IF bStoreEdge AND bStoreFull THEN
+    GVL_SystemState.stAlarms.bStorageRackFull := TRUE;
+    sStatusMessage := 'Zone B: RACK FULL — cannot store batch';
+END_IF
+
+// ── RETRIEVE REQUEST ──────────────────────────────────────────────────
+IF bRetrieveEdge THEN
+    eRetrievalResult := RETRIEVAL_NONE;
+
+    IF sBatchIDToGet = '' THEN
+        // FIFO MODE: find batch with oldest entry time
+        nOldestIdx := 0;
+        FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+            IF GVL_MedicineDB.astBatches[i].bIsOccupied
+               AND GVL_MedicineDB.astBatches[i].eCurrentZone = ZONE_STORAGE
+               AND GVL_MedicineDB.astBatches[i].eStatus = MEDICINE_NORMAL THEN
+                IF nOldestIdx = 0
+                   OR (DT_TO_DWORD(GVL_MedicineDB.astBatches[i].dtEntryTime)
+                       < DT_TO_DWORD(GVL_MedicineDB.astBatches[nOldestIdx].dtEntryTime)) THEN
+                    nOldestIdx := i;
+                END_IF
+            END_IF
+        END_FOR
+
+        IF nOldestIdx > 0 THEN
+            stRetrievedBatch    := GVL_MedicineDB.astBatches[nOldestIdx];
+            nCmd_TargetSlot     := stRetrievedBatch.nRackSlot;
+            bCmd_Retrieve       := TRUE;
+            bWaitingForASRS     := TRUE;
+            eCurrentOperation   := 2;
+            eRetrievalResult    := RETRIEVAL_REARRANGING;
+            sStatusMessage := CONCAT('Zone B: FIFO retrieve — slot ',
+                                INT_TO_STRING(nCmd_TargetSlot));
+        ELSE
+            eRetrievalResult := RETRIEVAL_NOT_FOUND;
+            sStatusMessage   := 'Zone B: No normal batches available for retrieval';
+        END_IF
+
+    ELSE
+        // SPECIFIC BATCH MODE
+        FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+            IF GVL_MedicineDB.astBatches[i].sBatchID = sBatchIDToGet
+               AND GVL_MedicineDB.astBatches[i].bIsOccupied
+               AND GVL_MedicineDB.astBatches[i].eCurrentZone = ZONE_STORAGE THEN
+                stRetrievedBatch    := GVL_MedicineDB.astBatches[i];
+                nCmd_TargetSlot     := stRetrievedBatch.nRackSlot;
+                bCmd_Retrieve       := TRUE;
+                bWaitingForASRS     := TRUE;
+                eCurrentOperation   := 2;
+                eRetrievalResult    := RETRIEVAL_REARRANGING;
+                sStatusMessage := CONCAT('Zone B: Specific retrieve — ', sBatchIDToGet);
+                EXIT;
+            END_IF
+        END_FOR
+
+        IF NOT bWaitingForASRS THEN
+            eRetrievalResult := RETRIEVAL_NOT_FOUND;
+            sStatusMessage   := CONCAT('Zone B: Batch not found — ', sBatchIDToGet);
+        END_IF
+    END_IF
+END_IF
+
+Execute := bWaitingForASRS;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="IsEnabled" Id="{0bcffdcb-c1f9-4ca9-80f1-b1a0ff74356c}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{c2a35df9-9671-49cd-9273-f8ecc51be8ab}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsEnabled := bEnable AND bSafeToOperate;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{22957153-28eb-4708-9868-9f4f9dd12dc1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="IsHealthy" Id="{fa39b391-4929-4587-91a4-f988da83c80f}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsHealthy : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{28322dda-a68d-4977-8a8f-ec622736ea4e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsHealthy := eRetrievalResult <> RETRIEVAL_FAULT;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{f7df8f98-698b-4739-8a57-a1e5c401a256}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="Reset" Id="{a016c867-f9d3-4866-8ae8-f991296901c1}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Reset : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bLastStore          := FALSE;
+bLastRetrieve       := FALSE;
+bWaitingForASRS     := FALSE;
+bCmd_Store          := FALSE;
+bCmd_Retrieve       := FALSE;
+eCurrentOperation   := 0;
+eRetrievalResult    := RETRIEVAL_NONE;
+sStatusMessage      := 'Zone B: Reset complete';
+Reset := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StatusMessage" Id="{57e11c5e-d882-41fb-977d-c2559f01a7cf}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY StatusMessage : STRING
+
+]]></Declaration>
+      <Get Name="Get" Id="{95669371-2d56-446c-9d9e-52347e320320}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StatusMessage := sStatusMessage;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{c3b454a4-8666-487c-9dad-08e03c6fef14}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_StorageManager">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.Execute">
+      <LineId Id="5" Count="141" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.IsEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.IsEnabled.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.IsHealthy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.IsHealthy.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.Reset">
+      <LineId Id="5" Count="7" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.StatusMessage.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StorageManager.StatusMessage.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

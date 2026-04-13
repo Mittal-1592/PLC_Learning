@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_AlarmManager" Id="{c714fbb2-f22e-47ca-94f2-f57daaa1b029}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_AlarmManager
+  ---------------
+  Centralized alarm handler using PRIORITY CHAIN logic.
+  Higher alarm code number = lower priority.
+  Emergency stop (100) ALWAYS beats temperature alarm (200), etc.
+
+  Alarm Priority List (highest to lowest):
+    100 — Emergency Stop      — stop everything immediately
+    200 — Temperature alarm   — product quality at risk
+    300 — Expired batch       — batch needs quarantine
+    400 — Quarantine alarm    — batch has been isolated
+    500 — ASRS fault          — mechanical problem
+    600 — Rack full           — cannot accept new stock
+    700 — Humidity alarm      — product quality at risk
+*)
+FUNCTION_BLOCK FB_AlarmManager
+VAR_INPUT
+    bEmergencyStop      : BOOL;
+    bTempAlarm          : BOOL;
+    bExpiredFound       : BOOL;
+    bQuarantineAlarm    : BOOL;
+    bASRSFault          : BOOL;
+    bRackFull           : BOOL;
+    bHumidityAlarm      : BOOL;
+END_VAR
+
+VAR_OUTPUT
+    bAnyAlarmActive     : BOOL;
+    nActiveAlarmCode    : INT;
+    sActiveAlarmMessage : STRING(80);
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{3e0c4436-0eb8-4b3b-97dd-14c236003d58}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bAnyAlarmActive     := FALSE;
+nActiveAlarmCode    := 0;
+sActiveAlarmMessage := 'No active alarms — system normal';
+
+// Priority chain — first match wins
+IF bEmergencyStop THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_ESTOP;
+    sActiveAlarmMessage := 'ALARM 100: EMERGENCY STOP — All motion halted';
+
+ELSIF bTempAlarm THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_TEMPERATURE;
+    sActiveAlarmMessage := 'ALARM 200: TEMPERATURE OUT OF RANGE — Product at risk';
+
+ELSIF bExpiredFound THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_EXPIRED;
+    sActiveAlarmMessage := 'ALARM 300: EXPIRED BATCH DETECTED — Quarantine pending';
+
+ELSIF bQuarantineAlarm THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_QUARANTINE;
+    sActiveAlarmMessage := 'ALARM 400: BATCH IN QUARANTINE — Disposal required';
+
+ELSIF bASRSFault THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_ASRS_FAULT;
+    sActiveAlarmMessage := 'ALARM 500: ASRS FAULT — Call maintenance';
+
+ELSIF bRackFull THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_RACK_FULL;
+    sActiveAlarmMessage := 'ALARM 600: STORAGE FULL — No free slots available';
+
+ELSIF bHumidityAlarm THEN
+    bAnyAlarmActive     := TRUE;
+    nActiveAlarmCode    := GVL_Config.C_ALARM_HUMIDITY;
+    sActiveAlarmMessage := 'ALARM 700: HUMIDITY OUT OF RANGE — Check HVAC';
+END_IF
+
+// Write to shared alarm struct
+GVL_SystemState.stAlarms.nActiveAlarmCode    := nActiveAlarmCode;
+GVL_SystemState.stAlarms.sActiveAlarmMessage := sActiveAlarmMessage;
+
+Execute := bAnyAlarmActive;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_AlarmManager">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AlarmManager.Execute">
+      <LineId Id="10" Count="45" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

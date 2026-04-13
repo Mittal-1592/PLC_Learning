@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="PRG_Simulation" Id="{44633c9f-1e23-4537-a763-d8a16b338aa8}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  PRG_Simulation
+  --------------
+  Automatic test scenario generator.
+  When bAutoMode = TRUE, this program automatically feeds
+  test batches into the system without manual Watch Window input.
+  
+  This is ONLY for testing — disable in production mode.
+  Set bAutoMode = FALSE to switch back to manual simulation.
+  
+   Scenario sequence:
+    1. Creates 3 normal batches (different expiry dates)
+    2. Creates 1 soon-to-expire batch
+    3. Waits, then advances clock to trigger expiry
+    4. Verifies quarantine fires automatically
+    5. Triggers a retrieval
+*)
+
+PROGRAM PRG_Simulation
+VAR
+    bAutoMode           : BOOL := FAlse;    // Set TRUE to run auto scenarios
+    nScenario           : INT  := 0;        // Current scenario step
+    tonScenarioTimer    : TON;              // Timer between scenario steps
+    nBatchCounter       : INT := 0;         // Auto-incrementing batch number
+    sTempID             : STRING(20);
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bAutoMode THEN
+    RETURN; // Do nothing in manual mode
+END_IF
+
+tonScenarioTimer(IN := TRUE, PT := T#3S);
+
+IF NOT tonScenarioTimer.Q THEN
+    RETURN; // Wait between steps
+END_IF
+
+tonScenarioTimer(IN := FALSE); // Reset timer
+
+CASE nScenario OF
+
+    0: // Send BATCH_001 — normal, expires 2027
+        GVL_SimInputs.sSim_BatchID          := 'BATCH_001';
+        GVL_SimInputs.sSim_MedicineName     := 'Paracetamol 500mg';
+        GVL_SimInputs.sSim_Manufacturer     := 'PharmaLab India';
+        GVL_SimInputs.fSim_Weight_kg        := 5.5;
+        GVL_SimInputs.fSim_TempRequired_C   := 15.0;
+        GVL_SimInputs.dtSim_ExpiryDate      := DT#2027-06-01-00:00:00;
+        GVL_SystemState.dtCurrentTime       := DT#2026-04-10-09:00:00;
+        GVL_SimInputs.bSim_BatchArrived     := TRUE;
+        nScenario := 1;
+
+    1: // Clear arrival pulse
+        GVL_SimInputs.bSim_BatchArrived := FALSE;
+        nScenario := 2;
+
+    2: // Send BATCH_002 — expiring soon (within 30 days)
+        GVL_SimInputs.sSim_BatchID          := 'BATCH_002';
+        GVL_SimInputs.sSim_MedicineName     := 'Amoxicillin 250mg';
+        GVL_SimInputs.fSim_Weight_kg        := 3.2;
+        GVL_SimInputs.dtSim_ExpiryDate      := DT#2026-04-25-00:00:00;
+        GVL_SimInputs.bSim_BatchArrived     := TRUE;
+        nScenario := 3;
+
+    3:
+        GVL_SimInputs.bSim_BatchArrived := FALSE;
+        nScenario := 4;
+
+    4: // Send BATCH_003 — normal
+        GVL_SimInputs.sSim_BatchID          := 'BATCH_003';
+        GVL_SimInputs.sSim_MedicineName     := 'Insulin Glargine 100u';
+        GVL_SimInputs.fSim_Weight_kg        := 1.8;
+        GVL_SimInputs.fSim_TempRequired_C   := 4.0;
+        GVL_SimInputs.dtSim_ExpiryDate      := DT#2027-12-01-00:00:00;
+        GVL_SimInputs.bSim_BatchArrived     := TRUE;
+        nScenario := 5;
+
+    5:
+        GVL_SimInputs.bSim_BatchArrived := FALSE;
+        nScenario := 6;
+
+    6: // Simulate conveyor signals for all 3 batches
+        GVL_SimInputs.bSim_InputConv_AtEntry  := TRUE;
+        GVL_SimInputs.bSim_Crane_AtTarget     := TRUE;
+        GVL_SimInputs.bSim_Crane_DepositDone  := TRUE;
+        nScenario := 7;
+
+    7:
+        GVL_SimInputs.bSim_InputConv_AtEntry  := FALSE;
+        GVL_SimInputs.bSim_Crane_AtTarget     := FALSE;
+        GVL_SimInputs.bSim_Crane_DepositDone  := FALSE;
+        nScenario := 8;
+
+    8: // Advance clock to expire BATCH_002
+        GVL_SystemState.dtCurrentTime := DT#2026-05-01-00:00:00;
+        // FB_ExpiryMonitor will detect BATCH_002 as EXPIRED
+        // FB_QuarantineHandler will isolate it automatically
+        nScenario := 9;
+
+    9: // Request FIFO retrieval (should return BATCH_001 — oldest)
+        GVL_SimInputs.sSim_RetrieveBatchID  := '';  // FIFO mode
+        GVL_SimInputs.bSim_RetrievalRequest := TRUE;
+        nScenario := 10;
+
+    10:
+        GVL_SimInputs.bSim_RetrievalRequest   := FALSE;
+        GVL_SimInputs.bSim_Crane_AtTarget     := TRUE;
+        GVL_SimInputs.bSim_Crane_RetrieveDone := TRUE;
+        GVL_SimInputs.bSim_Crane_AtTarget     := TRUE;
+        GVL_SimInputs.bSim_OutputConv_AtDisp  := TRUE;
+        nScenario := 11;
+
+    11:
+        GVL_SimInputs.bSim_Crane_AtTarget     := FALSE;
+        GVL_SimInputs.bSim_Crane_RetrieveDone := FALSE;
+        GVL_SimInputs.bSim_OutputConv_AtDisp  := FALSE;
+        // Scenario complete — reset or loop
+        nScenario := 0;
+        bAutoMode := FALSE; // Auto-disable after one run
+
+END_CASE]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_Simulation">
+      <LineId Id="31" Count="92" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

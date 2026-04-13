@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_EnvironmentControl" Id="{1a2653a3-1b63-4e23-be9e-2d0ee46a4c81}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_EnvironmentControl
+  ---------------------
+  Implements: I_Zone
+  Responsibility: Zone C — Temperature and humidity control.
+
+  Uses a DEADBAND control strategy:
+  - Normal band: setpoint ± tolerance (cooling/heating ON/OFF)
+  - Alarm band:  setpoint ± (tolerance × alarm multiplier) → alarm fires
+
+  Example with defaults (setpoint=15, tolerance=2, multiplier=2):
+    Temperature 11–13°C → Heating ON, no alarm
+    Temperature 13–17°C → Both OFF (OK zone)
+    Temperature 17–19°C → Cooling ON, no alarm
+    Temperature <11°C or >19°C → Alarm fires
+*)
+FUNCTION_BLOCK FB_EnvironmentControl IMPLEMENTS I_Zone
+VAR_INPUT
+    bEnable             : BOOL;
+    fActualTemp_C       : REAL;
+    fActualHumid_Pct    : REAL;
+END_VAR
+
+VAR_OUTPUT
+    bCoolingON          : BOOL;
+    bHeatingON          : BOOL;
+    bTempAlarm          : BOOL;
+    bHumidityAlarm      : BOOL;
+    sStatusMessage      : STRING(80);
+END_VAR
+
+VAR
+    fAlarmBand          : REAL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{56e7c20c-aa5c-4114-aefc-c7bea06f8e61}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Execute : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fAlarmBand := GVL_Config.C_TEMP_TOLERANCE_C * GVL_Config.C_TEMP_ALARM_MULT;
+
+IF NOT bEnable THEN
+    bCoolingON     := FALSE;
+    bHeatingON     := FALSE;
+    bTempAlarm     := FALSE;
+    bHumidityAlarm := FALSE;
+    sStatusMessage := 'Zone C: Disabled';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── Temperature Control ───────────────────────────────────────────────
+IF fActualTemp_C > (GVL_Config.C_TEMP_SETPOINT_C + GVL_Config.C_TEMP_TOLERANCE_C) THEN
+    bCoolingON := TRUE;
+    bHeatingON := FALSE;
+    bTempAlarm := fActualTemp_C > (GVL_Config.C_TEMP_SETPOINT_C + fAlarmBand);
+
+ELSIF fActualTemp_C < (GVL_Config.C_TEMP_SETPOINT_C - GVL_Config.C_TEMP_TOLERANCE_C) THEN
+    bHeatingON := TRUE;
+    bCoolingON := FALSE;
+    bTempAlarm := fActualTemp_C < (GVL_Config.C_TEMP_SETPOINT_C - fAlarmBand);
+
+ELSE
+    bCoolingON := FALSE;
+    bHeatingON := FALSE;
+    bTempAlarm := FALSE;
+END_IF
+
+// ── Humidity Control ──────────────────────────────────────────────────
+bHumidityAlarm := (fActualHumid_Pct > GVL_Config.C_HUMID_SETPOINT_PCT + GVL_Config.C_HUMID_TOLERANCE_PCT)
+               OR (fActualHumid_Pct < GVL_Config.C_HUMID_SETPOINT_PCT - GVL_Config.C_HUMID_TOLERANCE_PCT);
+
+// ── Status Message ────────────────────────────────────────────────────
+IF bTempAlarm OR bHumidityAlarm THEN
+    sStatusMessage := CONCAT('ALARM — Temp:', REAL_TO_STRING(fActualTemp_C));
+    sStatusMessage := CONCAT(sStatusMessage, 'C Humid:');
+    sStatusMessage := CONCAT(sStatusMessage, REAL_TO_STRING(fActualHumid_Pct));
+    sStatusMessage := CONCAT(sStatusMessage, '%');
+ELSIF bCoolingON THEN
+    sStatusMessage := 'Zone C: COOLING ACTIVE';
+ELSIF bHeatingON THEN
+    sStatusMessage := 'Zone C: HEATING ACTIVE';
+ELSE
+    sStatusMessage := 'Zone C: ENVIRONMENT OK';
+END_IF
+
+// ── Write to shared GVL ───────────────────────────────────────────────
+GVL_MedicineDB.stEnvData.fTemperature_C     := fActualTemp_C;
+GVL_MedicineDB.stEnvData.fHumidity_Pct      := fActualHumid_Pct;
+GVL_MedicineDB.stEnvData.bCoolingActive     := bCoolingON;
+GVL_MedicineDB.stEnvData.bHeatingActive     := bHeatingON;
+GVL_MedicineDB.stEnvData.bTempAlarm         := bTempAlarm;
+GVL_MedicineDB.stEnvData.bHumidityAlarm     := bHumidityAlarm;
+GVL_MedicineDB.stEnvData.sStatus            := sStatusMessage;
+
+GVL_SystemState.stAlarms.bTemperatureAlarm  := bTempAlarm;
+GVL_SystemState.stAlarms.bHumidityAlarm     := bHumidityAlarm;
+
+Execute := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="IsEnabled" Id="{d2d282e0-230a-4ef8-85d9-893e8038bbbe}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{7cfcbd6c-a859-4a9f-bc5d-a4921fe77b98}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsEnabled := bEnable;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{32f1aae6-120b-4275-a01e-94106f7805f8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="IsHealthy" Id="{75a15961-ecc4-448d-aa76-e1a91217bcb8}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsHealthy : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{0d2f4cc3-b834-48b1-84dc-f6caaae3d824}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsHealthy := NOT (bTempAlarm OR bHumidityAlarm);]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{06b2d659-7fe9-4246-a401-3d2ce647a8da}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="Reset" Id="{802c6792-29c9-4c00-b818-743f601e83a8}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Reset : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bCoolingON     := FALSE;
+bHeatingON     := FALSE;
+bTempAlarm     := FALSE;
+bHumidityAlarm := FALSE;
+sStatusMessage := 'Zone C: Reset complete';
+Reset := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StatusMessage" Id="{630d1ad5-3599-4f5f-abc2-86c9a9d95d15}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY StatusMessage : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{6dc5440f-9b19-4956-8a55-7c9cd1dae98b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StatusMessage := sStatusMessage;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{8d03aebd-c8ed-468a-9d77-9898c72ce7f5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_EnvironmentControl">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.Execute">
+      <LineId Id="5" Count="58" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.IsEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.IsEnabled.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.IsHealthy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.IsHealthy.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.Reset">
+      <LineId Id="5" Count="4" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.StatusMessage.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EnvironmentControl.StatusMessage.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

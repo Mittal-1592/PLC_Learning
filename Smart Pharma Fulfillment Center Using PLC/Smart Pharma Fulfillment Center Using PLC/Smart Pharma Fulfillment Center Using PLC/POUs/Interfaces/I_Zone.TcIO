@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <Itf Name="I_Zone" Id="{d4053b86-8b1b-42df-9e20-b06a897b36a2}">
+    <Declaration><![CDATA[INTERFACE I_Zone
+(*
+  I_Zone
+  ------
+  Interface that ALL zone function blocks must implement.
+  This is the professional OOP approach — any FB that manages
+  a physical zone signs a contract: it MUST provide these
+  methods and properties.
+
+  Benefits:
+  - PRG_MAIN can call Execute() on any zone without knowing
+    the internal details.
+  - Adding a new zone only requires implementing this interface.
+  - Makes unit testing and code review much easier.
+
+  Usage:
+    FUNCTION_BLOCK FB_ReceivingZone IMPLEMENTS I_Zone
+*)]]></Declaration>
+    <Method Name="Execute" Id="{ab31d0c4-fead-4d68-b9a9-f6b078decbcf}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+(*
+  Execute — runs the zone's main logic for one scan cycle.
+  Returns TRUE if the zone completed a meaningful action.
+*)]]></Declaration>
+    </Method>
+    <Property Name="IsEnabled" Id="{f4a01249-e0be-4806-9b3d-c4013d176b00}">
+      <Declaration><![CDATA[PROPERTY IsEnabled : BOOL
+(*
+  IsEnabled — returns TRUE if the zone has permission to operate.
+  Checks master enable and any zone-specific conditions.
+*)]]></Declaration>
+      <Get Name="Get" Id="{9e824c16-b68d-4ac3-bddf-5660f40c8de0}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{59160725-1996-4eb4-9b67-aa168d9ee757}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="IsHealthy" Id="{60a6c8b4-80dc-4bca-92d3-d59f27b79978}">
+      <Declaration><![CDATA[PROPERTY IsHealthy  : BOOL
+(*
+  IsHealthy — returns TRUE if the zone has no active faults.
+*)]]></Declaration>
+      <Get Name="Get" Id="{25e6a40d-8e9c-4c5a-84fd-d34a9452dbcc}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{67a045c3-161d-49cf-a9d9-5247bfedbe4a}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="Reset" Id="{767c581e-cee5-44a9-a2fe-0ecb2f976016}">
+      <Declaration><![CDATA[METHOD Reset  : BOOL
+(*
+  Reset — clears all internal state flags.
+  Used when recovering from a fault or restarting a zone.
+*)]]></Declaration>
+    </Method>
+    <Property Name="StatusMessage" Id="{3a564591-2ccb-46ff-a241-9c27c4da0e6e}">
+      <Declaration><![CDATA[PROPERTY StatusMessage : STRING
+(*
+  StatusMessage — current human-readable status text.
+  HMI reads this for zone status cards.
+*)]]></Declaration>
+      <Get Name="Get" Id="{9f065d06-f983-456d-8873-2db0f3391d1e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{01be3409-f4bc-489d-9cca-133fc8e2a7e4}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+  </Itf>
+</TcPlcObject>

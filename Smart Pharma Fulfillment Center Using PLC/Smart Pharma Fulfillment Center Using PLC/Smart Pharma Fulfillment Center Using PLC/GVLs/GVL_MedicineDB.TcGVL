@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <GVL Name="GVL_MedicineDB" Id="{b6567694-7e95-44d7-85ac-39d26f9202cc}">
+    <Declaration><![CDATA[(*
+  GVL_MedicineDB
+  --------------
+  The warehouse database — all physical and logical state.
+  This is the single source of truth for where everything is.
+  All FBs read from and write to this GVL.
+*)
+VAR_GLOBAL
+
+    // ── Batch Records ──────────────────────────────────────────
+    // 20 batch records — one per batch that can be in system
+    astBatches          : ARRAY[1..20] OF ST_MedicineBatch;
+    nTotalBatches       : INT := 0;         // How many records are occupied
+
+    // ── Rack Slots ─────────────────────────────────────────────
+    // 20 physical rack slots — maps to physical warehouse
+    astRackSlots        : ARRAY[1..20] OF ST_RackSlot;
+    nOccupiedSlots      : INT := 0;         // How many slots have batches
+    nFreeSlots          : INT := 20;        // Calculated: 20 - nOccupiedSlots
+
+    // ── Environment ────────────────────────────────────────────
+    stEnvData           : ST_EnvironmentData; // Zone C live readings + status
+
+    // ── ASRS State ─────────────────────────────────────────────
+    stASRS_CurrentPos   : ST_ASRSPosition;  // Where crane is RIGHT NOW
+    stASRS_TargetPos    : ST_ASRSPosition;  // Where crane NEEDS TO GO
+    eASRS_State         : E_ASRSState;      // Current crane state
+    bASRS_Busy          : BOOL;             // TRUE = crane or belt is active
+    bASRS_Fault         : BOOL;             // TRUE = ASRS has a fault
+
+    // ── Conveyor State ─────────────────────────────────────────
+    stInputConveyor     : ST_ConveyorStatus;  // Belt: gate → ASRS
+    stOutputConveyor    : ST_ConveyorStatus;  // Belt: ASRS → dispatch
+
+    // ── Retrieval Tracking ─────────────────────────────────────
+    eLastRetrievalResult : E_RetrievalResult; // Result of last retrieval
+    sLastDispatchedBatch : STRING(20);        // Last batch that was dispatched
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

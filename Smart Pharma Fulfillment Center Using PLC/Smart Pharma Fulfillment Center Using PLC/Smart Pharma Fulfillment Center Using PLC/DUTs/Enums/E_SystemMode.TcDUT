@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="E_SystemMode" Id="{9d0dd5ab-100d-483c-9f3a-d1174e870c67}">
+    <Declaration><![CDATA[(*
+  E_SystemMode
+  ------------
+  The master operating mode of the entire warehouse system.
+  Think of this as the system's current "gear".
+  PRG_MAIN sets this every scan cycle based on what is happening.
+  The HMI displays this as the main status indicator.
+*)
+TYPE E_SystemMode :
+(
+    MODE_IDLE           := 0,   // System waiting, no active operation
+    MODE_RECEIVING      := 1,   // Zone A is processing a new batch
+    MODE_STORING        := 2,   // ASRS is placing a batch in a rack slot
+    MODE_RETRIEVING     := 3,   // ASRS is pulling a batch for dispatch
+    MODE_QUARANTINE     := 4,   // Quarantine operation in progress
+    MODE_EMERGENCY      := 5,   // E-Stop active — all motion halted
+    MODE_MAINTENANCE    := 6    // Manual override — technician working
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

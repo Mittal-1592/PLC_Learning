@@ -1,0 +1,237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_ReceivingZone" Id="{bcc7bab6-3e47-4e25-9ac0-128c40832f38}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_ReceivingZone
+  ----------------
+  Implements: I_Zone
+  Responsibility: Zone A — Validates and registers incoming batches.
+  
+  WHAT IT DOES:
+  When a batch arrives (bBatchArrived rising edge):
+  1. Checks weight > minimum
+  2. Checks BatchID is not empty
+  3. Checks expiry date is in the future
+  If ALL checks pass → creates complete ST_MedicineBatch record
+  If ANY check fails → sets bBatchRejected with a reason message
+  
+  RISING EDGE DETECTION is critical: bBatchArrived may stay TRUE
+  for many scan cycles. We only want to process it ONCE.
+*)
+FUNCTION_BLOCK FB_ReceivingZone IMPLEMENTS I_Zone
+VAR_INPUT
+    bEnable             : BOOL;             // From GVL_SystemState.bMasterEnable
+    bSafeToOperate      : BOOL;             // From FB_SafetyInterlock
+    bBatchArrived       : BOOL;             // Proximity sensor (simulated)
+    sBatchID            : STRING(20);       // Barcode scan result
+    sMedicineName       : STRING(30);       // Medicine label
+    sManufacturer       : STRING(30);       // Manufacturer label
+    fWeight_kg          : REAL;             // Load cell reading
+    fTempRequired_C     : REAL;             // Required storage temperature
+    dtExpiryDate        : DATE_AND_TIME;    // From medicine label
+    dtNow               : DATE_AND_TIME;    // Current system time
+END_VAR
+
+VAR_OUTPUT
+    bBatchAccepted      : BOOL;             // TRUE for one cycle when batch passes
+    bBatchRejected      : BOOL;             // TRUE for one cycle when batch fails
+    stNewBatch          : ST_MedicineBatch; // Complete batch record if accepted
+    sStatusMessage      : STRING(80);       // Current status for HMI display
+END_VAR
+
+VAR
+    // Edge detection
+    bLastBatchArrived   : BOOL;
+    bRisingEdge         : BOOL;
+
+    // Internal
+    sRejectionReason    : STRING(80);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{a8d66400-20f4-4ab8-9666-1ec8262feac2}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Execute : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Clear pulse outputs at start of every cycle
+bBatchAccepted := FALSE;
+bBatchRejected := FALSE;
+
+// Detect rising edge of arrival signal
+bRisingEdge         := bBatchArrived AND NOT bLastBatchArrived;
+bLastBatchArrived   := bBatchArrived;
+
+// Only process when enabled, safe, and a new batch has just arrived
+IF NOT (bEnable AND bSafeToOperate) THEN
+    sStatusMessage := 'Zone A: Disabled — waiting for master enable';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+IF NOT bRisingEdge THEN
+    sStatusMessage := 'Zone A: Ready — waiting for batch arrival';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── Validation Gate ───────────────────────────────────────────────────
+
+// Check 1: Weight must be above minimum threshold
+IF fWeight_kg < GVL_Config.C_MIN_WEIGHT_KG THEN
+    sRejectionReason   := CONCAT('Invalid weight: ', REAL_TO_STRING(fWeight_kg));
+    sRejectionReason   := CONCAT(sRejectionReason, 'kg (minimum 0.1kg)');
+    bBatchRejected     := TRUE;
+    sStatusMessage     := CONCAT('REJECTED: ', sRejectionReason);
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// Check 2: Batch ID must be scanned (not empty)
+IF sBatchID = '' THEN
+    sRejectionReason := 'Batch ID empty — barcode not scanned';
+    bBatchRejected   := TRUE;
+    sStatusMessage   := CONCAT('REJECTED: ', sRejectionReason);
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// Check 3: Expiry date must be in the future
+IF dtExpiryDate <= dtNow THEN
+    sRejectionReason := 'Expiry date is in the past — batch already expired';
+    bBatchRejected   := TRUE;
+    sStatusMessage   := CONCAT('REJECTED: ', sRejectionReason);
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── All checks passed — build batch record ────────────────────────────
+stNewBatch.sBatchID         := sBatchID;
+stNewBatch.sMedicineName    := sMedicineName;
+stNewBatch.sManufacturer    := sManufacturer;
+stNewBatch.fWeight_kg       := fWeight_kg;
+stNewBatch.fTempRequired_C  := fTempRequired_C;
+stNewBatch.dtEntryTime      := dtNow;
+stNewBatch.dtExpiryDate     := dtExpiryDate;
+stNewBatch.eStatus          := MEDICINE_NORMAL;
+stNewBatch.eCurrentZone     := ZONE_RECEIVING;
+stNewBatch.nRackSlot        := 0;           // Not placed yet
+stNewBatch.bIsOccupied      := TRUE;
+
+bBatchAccepted  := TRUE;
+sStatusMessage  := CONCAT('ACCEPTED: ', sBatchID);
+sStatusMessage  := CONCAT(sStatusMessage, ' — moving to storage');
+Execute := TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="IsEnabled" Id="{265af15e-b5d9-4ce9-a2ef-3b093061311b}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{e45b8346-c917-4b9e-8395-897de2c5b559}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsEnabled := bEnable AND bSafeToOperate;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{fc4e7790-1ee5-44c9-99d0-6e0e79129df2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="IsHealthy" Id="{6d7945e2-f815-40cf-b37a-4f608eb665d5}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY IsHealthy : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{7c47072f-603a-405f-bcbc-b8fa974aed72}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsHealthy := NOT bBatchRejected;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ee824b88-5581-4e01-bc31-04c1a046806d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="Reset" Id="{7cb442ff-ab65-44db-97e7-a23a17cee261}">
+      <Declaration><![CDATA[{warning 'add method implementation '}
+METHOD Reset : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bBatchAccepted      := FALSE;
+bBatchRejected      := FALSE;
+bLastBatchArrived   := FALSE;
+bRisingEdge         := FALSE;
+sStatusMessage      := 'Zone A: Reset complete';
+Reset := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StatusMessage" Id="{b99c4dc5-7acc-4c1c-8d74-09e61f270daa}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY StatusMessage : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{d1e8cc44-6bbe-4b46-b5f2-efd3d5238722}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StatusMessage := sStatusMessage;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{cef5327a-786d-4322-98f9-2b4f35cf7b1c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_ReceivingZone">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.Execute">
+      <LineId Id="10" Count="68" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.IsEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.IsEnabled.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.IsHealthy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.IsHealthy.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.Reset">
+      <LineId Id="5" Count="4" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.StatusMessage.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReceivingZone.StatusMessage.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
