@@ -180,7 +180,7 @@ CASE nState OF
     1: // Input conveyor running forward
         sStatusMessage := 'ASRS: Input conveyor — batch moving to crane';
         eCoordState    := ASRS_IDLE;
-        IF fbInputConv.stStatus.bAtASRSEntry THEN
+        IF fbInputConv.stStatus.bAtASRSEntry OR GVL_SimInputs.bSim_InputConv_AtEntry THEN
             nState := 3;
         END_IF
 
@@ -252,7 +252,7 @@ CASE nState OF
     14: // Output conveyor running to dispatch
         eCoordState    := ASRS_HANDING_OVER;
         sStatusMessage := 'ASRS: Output conveyor — batch moving to dispatch';
-        IF fbOutputConv.stStatus.bAtDispatch THEN
+        IF fbOutputConv.stStatus.bAtDispatch or GVL_SimInputs.bSim_OutputConv_AtDisp THEN
             GVL_MedicineDB.stOutputConveyor.bBatchOnBelt   := FALSE;
             GVL_MedicineDB.stOutputConveyor.sBatchIDOnBelt := '';
             bRetrievalComplete := TRUE;
@@ -274,7 +274,7 @@ Execute := bBusy;]]></ST>
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_ASRSCoordinator.Execute">
-      <LineId Id="6" Count="191" />
+      <LineId Id="201" Count="191" />
       <LineId Id="5" Count="0" />
     </LineIds>
   </POU>

@@ -52,10 +52,14 @@
       "type": "Stylesheet"
     }
   ],
-  "userControls": [],
+  "userControls": [
+    {
+      "url": "UserControl/UC_StorageSlot.usercontrol"
+    }
+  ],
   "content": [
     {
-      "url": "Contents/ZoneA_Receiving.content",
+      "url": "Contents/Alarm.content",
       "preload": false,
       "keepAlive": false,
       "loadSync": false,
@@ -69,7 +73,7 @@
       "preloadBindings": false
     },
     {
-      "url": "Contents/Alarm.content",
+      "url": "Contents/ZoneA_Receiving.content",
       "preload": false,
       "keepAlive": false,
       "loadSync": false,

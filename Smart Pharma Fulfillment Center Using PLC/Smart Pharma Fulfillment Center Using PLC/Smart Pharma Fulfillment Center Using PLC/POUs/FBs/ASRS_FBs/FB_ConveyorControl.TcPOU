@@ -132,7 +132,7 @@ CASE stStatus.eState OF
 
         // Forward: batch arriving at ASRS
         IF stStatus.eDirection = CONV_DIR_FORWARD THEN
-            IF bSim_BatchAtEntry OR tonTravelTimer.Q THEN
+            IF bSim_BatchAtEntry THEN
                 stStatus.eState         := CONV_IDLE;
                 stStatus.eDirection     := CONV_DIR_NONE;
                 stStatus.bAtASRSEntry   := TRUE;
@@ -142,7 +142,7 @@ CASE stStatus.eState OF
 
         // Reverse: batch arriving at dispatch
         IF stStatus.eDirection = CONV_DIR_REVERSE THEN
-            IF bSim_BatchAtDispatch OR tonTravelTimer.Q THEN
+            IF bSim_BatchAtDispatch THEN
                 stStatus.eState             := CONV_IDLE;
                 stStatus.eDirection         := CONV_DIR_NONE;
                 stStatus.bAtDispatch        := TRUE;

@@ -28,7 +28,8 @@ VAR
     sTempID             : STRING(20);
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF NOT bAutoMode THEN
+      <ST><![CDATA[(*
+IF NOT bAutoMode THEN
     RETURN; // Do nothing in manual mode
 END_IF
 
@@ -121,11 +122,14 @@ CASE nScenario OF
         nScenario := 0;
         bAutoMode := FALSE; // Auto-disable after one run
 
-END_CASE]]></ST>
+END_CASE
+*)]]></ST>
     </Implementation>
     <LineIds Name="PRG_Simulation">
+      <LineId Id="149" Count="0" />
       <LineId Id="31" Count="92" />
       <LineId Id="5" Count="0" />
+      <LineId Id="175" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

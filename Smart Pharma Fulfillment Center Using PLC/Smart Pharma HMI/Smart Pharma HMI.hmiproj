@@ -27,7 +27,7 @@
     <HmiViewportUserScaleable>Default</HmiViewportUserScaleable>
     <HmiPostProcessing>True</HmiPostProcessing>
     <Name>Smart Pharma HMI</Name>
-    <HmiCommunicationRouterPort>10102</HmiCommunicationRouterPort>
+    <HmiCommunicationRouterPort>10106</HmiCommunicationRouterPort>
     <HmiCommunicationServerAuthPort>13000</HmiCommunicationServerAuthPort>
     <HmiInitial>1.12.762.56</HmiInitial>
     <HmiRecent>1.12.762.56</HmiRecent>
@@ -122,6 +122,13 @@
     <Content Include="Contents\ZoneB_Storage.content">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="UserControl\UC_StorageSlot.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControl\UC_StorageSlot.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControl\UC_StorageSlot.usercontrol</DependentUpon>
+    </Content>
     <Folder Include="Fonts\" />
     <Folder Include="Images" />
     <Folder Include="Images\Manifest" />
@@ -131,6 +138,7 @@
     <Folder Include="KeyboardLayouts\" />
     <Folder Include="Localization" />
     <Folder Include="Contents" />
+    <Folder Include="UserControl" />
     <Folder Include="Themes" />
     <Folder Include="Themes\Base-Dark\Images\" />
     <Folder Include="Themes\Base\" />

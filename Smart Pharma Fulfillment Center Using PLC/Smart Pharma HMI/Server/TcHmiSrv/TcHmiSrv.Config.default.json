@@ -28,6 +28,115 @@
     "DEFAULTTIMEZONE": "client",
     "DEFAULTUSERGROUP": "__SystemUsers",
     "DEFINITIONS": {
+        "PLC1.ARRAY_1..20_OF-ST_MedicineBatch": {
+            "items": {
+                "$ref": "#/definitions/PLC1.ST_MedicineBatch"
+            },
+            "maxItems": 20,
+            "minItems": 20,
+            "startOffset": 1,
+            "type": "array"
+        },
+        "PLC1.E_ASRSState": {
+            "attributes": {
+                "generate_implicit_init_function": ""
+            },
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "options": [
+                {
+                    "label": "ASRS_IDLE",
+                    "value": 0
+                },
+                {
+                    "label": "ASRS_MOVING_TO_SLOT",
+                    "value": 1
+                },
+                {
+                    "label": "ASRS_DEPOSITING",
+                    "value": 2
+                },
+                {
+                    "label": "ASRS_RETRIEVING",
+                    "value": 3
+                },
+                {
+                    "label": "ASRS_MOVING_TO_CONV",
+                    "value": 4
+                },
+                {
+                    "label": "ASRS_HANDING_OVER",
+                    "value": 5
+                },
+                {
+                    "label": "ASRS_FAULT",
+                    "value": 6
+                }
+            ],
+            "type": "integer"
+        },
+        "PLC1.E_ConveyorDirection": {
+            "attributes": {
+                "generate_implicit_init_function": ""
+            },
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "options": [
+                {
+                    "label": "CONV_DIR_NONE",
+                    "value": 0
+                },
+                {
+                    "label": "CONV_DIR_FORWARD",
+                    "value": 1
+                },
+                {
+                    "label": "CONV_DIR_REVERSE",
+                    "value": 2
+                }
+            ],
+            "type": "integer"
+        },
+        "PLC1.E_ConveyorState": {
+            "attributes": {
+                "generate_implicit_init_function": ""
+            },
+            "enum": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "options": [
+                {
+                    "label": "CONV_IDLE",
+                    "value": 0
+                },
+                {
+                    "label": "CONV_MOVING",
+                    "value": 1
+                },
+                {
+                    "label": "CONV_BLOCKED",
+                    "value": 2
+                },
+                {
+                    "label": "CONV_FAULT",
+                    "value": 3
+                }
+            ],
+            "type": "integer"
+        },
         "PLC1.E_MedicineStatus": {
             "attributes": {
                 "generate_implicit_init_function": ""
@@ -69,6 +178,41 @@
                 {
                     "label": "MEDICINE_DAMAGED",
                     "value": 6
+                }
+            ],
+            "type": "integer"
+        },
+        "PLC1.E_RetrievalResult": {
+            "attributes": {
+                "generate_implicit_init_function": ""
+            },
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "options": [
+                {
+                    "label": "RETRIEVAL_NONE",
+                    "value": 0
+                },
+                {
+                    "label": "RETRIEVAL_SUCCESS",
+                    "value": 1
+                },
+                {
+                    "label": "RETRIEVAL_NOT_FOUND",
+                    "value": 2
+                },
+                {
+                    "label": "RETRIEVAL_REARRANGING",
+                    "value": 3
+                },
+                {
+                    "label": "RETRIEVAL_FAULT",
+                    "value": 4
                 }
             ],
             "type": "integer"
@@ -117,6 +261,1824 @@
                 }
             ],
             "type": "integer"
+        },
+        "PLC1.E_ZoneID": {
+            "attributes": {
+                "generate_implicit_init_function": ""
+            },
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "options": [
+                {
+                    "label": "ZONE_NONE",
+                    "value": 0
+                },
+                {
+                    "label": "ZONE_RECEIVING",
+                    "value": 1
+                },
+                {
+                    "label": "ZONE_STORAGE",
+                    "value": 2
+                },
+                {
+                    "label": "ZONE_ENV_CONTROL",
+                    "value": 3
+                },
+                {
+                    "label": "ZONE_QUARANTINE",
+                    "value": 4
+                }
+            ],
+            "type": "integer"
+        },
+        "PLC1.FB_ASRSCoordinator": {
+            "properties": {
+                "bBusy": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "bCmd_Retrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Rising edge: retrieve from this slot",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "bCmd_Store": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Rising edge: store this batch",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "bEnable": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "bFault": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 11
+                        }
+                    ]
+                },
+                "bLastRetrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 22
+                        }
+                    ]
+                },
+                "bLastStore": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 20
+                        }
+                    ]
+                },
+                "bRetrievalComplete": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: batch physically at dispatch",
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "bRetrieveEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 21
+                        }
+                    ]
+                },
+                "bStorageComplete": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: batch physically in slot",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "bStoreEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 19
+                        }
+                    ]
+                },
+                "dtNow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "eCoordState": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_ASRSState"
+                        },
+                        {
+                            "propertyOrder": 12
+                        }
+                    ]
+                },
+                "fbCrane": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.FB_ASRSCrane"
+                        },
+                        {
+                            "propertyOrder": 16
+                        }
+                    ]
+                },
+                "fbInputConv": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.FB_ConveyorControl"
+                        },
+                        {
+                            "comment": "Sub-FB instances (internal)",
+                            "propertyOrder": 14
+                        }
+                    ]
+                },
+                "fbOutputConv": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.FB_ConveyorControl"
+                        },
+                        {
+                            "propertyOrder": 15
+                        }
+                    ]
+                },
+                "i": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 25
+                        }
+                    ]
+                },
+                "nSlotToRetrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Which slot to retrieve from",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "nState": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "State machine",
+                            "propertyOrder": 17
+                        }
+                    ]
+                },
+                "nWorkingSlot": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Internal tracking",
+                            "propertyOrder": 18
+                        }
+                    ]
+                },
+                "sRetrieveBatchID": {
+                    "allOf": [
+                        {
+                            "comment": "Batch ID being retrieved",
+                            "maxLength": 20,
+                            "propertyOrder": 6
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sStatusMessage": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                        },
+                        {
+                            "propertyOrder": 13
+                        }
+                    ]
+                },
+                "stBatchToStore": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_MedicineBatch"
+                        },
+                        {
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "tonResetRetrieval": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 24
+                        }
+                    ]
+                },
+                "tonResetStorage": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "comment": "Reset timers for pulse outputs",
+                            "propertyOrder": 23
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.FB_ASRSCrane": {
+            "properties": {
+                "bCmd_Retrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: go to slot and pick up",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "bCmd_Store": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: go to slot and deposit",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "bDepositComplete": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: deposit finished",
+                            "propertyOrder": 16
+                        }
+                    ]
+                },
+                "bEnable": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "bFault": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 19
+                        }
+                    ]
+                },
+                "bHandoverComplete": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: placed on output conveyor",
+                            "propertyOrder": 18
+                        }
+                    ]
+                },
+                "bIsStoreOperation": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE=storing, FALSE=retrieving",
+                            "propertyOrder": 31
+                        }
+                    ]
+                },
+                "bLastRetrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 30
+                        }
+                    ]
+                },
+                "bLastStore": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 28
+                        }
+                    ]
+                },
+                "bReadyForCommand": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE when crane is idle",
+                            "propertyOrder": 15
+                        }
+                    ]
+                },
+                "bRetrieveComplete": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: retrieve finished",
+                            "propertyOrder": 17
+                        }
+                    ]
+                },
+                "bRetrieveEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 29
+                        }
+                    ]
+                },
+                "bSim_AtTarget": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Position sensor: arrived at target",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "bSim_DepositDone": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Arm sensor: deposit complete",
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "bSim_Fault": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Drive fault from VFD",
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "bSim_RetrieveDone": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Gripper: pick-up complete",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "bStoreEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Internal",
+                            "propertyOrder": 27
+                        }
+                    ]
+                },
+                "eState": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_ASRSState"
+                        },
+                        {
+                            "propertyOrder": 12
+                        }
+                    ]
+                },
+                "fSim_X_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "X encoder reading",
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "fSim_Y_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Y encoder reading",
+                            "propertyOrder": 11
+                        }
+                    ]
+                },
+                "nTargetSlot": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Slot number (1–20)",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "sBatchIDToHandle": {
+                    "allOf": [
+                        {
+                            "comment": "Which batch (for status messages)",
+                            "maxLength": 20,
+                            "propertyOrder": 5
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sStatusMessage": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                        },
+                        {
+                            "propertyOrder": 20
+                        }
+                    ]
+                },
+                "stCurrentPos": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_ASRSPosition"
+                        },
+                        {
+                            "propertyOrder": 13
+                        }
+                    ]
+                },
+                "stTargetPos": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_ASRSPosition"
+                        },
+                        {
+                            "propertyOrder": 14
+                        }
+                    ]
+                },
+                "tonDeposit": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 23
+                        }
+                    ]
+                },
+                "tonFaultDelay": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 26
+                        }
+                    ]
+                },
+                "tonHandover": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 25
+                        }
+                    ]
+                },
+                "tonRetrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 24
+                        }
+                    ]
+                },
+                "tonXTravel": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "comment": "Timers",
+                            "propertyOrder": 21
+                        }
+                    ]
+                },
+                "tonYTravel": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "propertyOrder": 22
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.FB_ConveyorControl": {
+            "properties": {
+                "bCmd_StartForward": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: run toward ASRS entry",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "bCmd_StartReverse": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: run toward dispatch exit",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "bCmd_Stop": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: stop belt immediately",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "bEnable": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "bFault": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 11
+                        }
+                    ]
+                },
+                "bFwdEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 16
+                        }
+                    ]
+                },
+                "bLastFwd": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Edge detection",
+                            "propertyOrder": 14
+                        }
+                    ]
+                },
+                "bLastRev": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 15
+                        }
+                    ]
+                },
+                "bMotorON": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Motor contactor output",
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "bRevEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 17
+                        }
+                    ]
+                },
+                "bSim_BatchAtDispatch": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Proximity sensor at dispatch exit",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "bSim_BatchAtEntry": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Proximity sensor at ASRS entry",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "bSim_Blocked": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Obstruction sensor",
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "fSim_BeltSpeed_ms": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Speed setpoint",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "stStatus": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_ConveyorStatus"
+                        },
+                        {
+                            "comment": "Complete belt status",
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "tonBlockTimeout": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "comment": "Watchdog for blockage duration",
+                            "propertyOrder": 13
+                        }
+                    ]
+                },
+                "tonTravelTimer": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.Tc2_Standard.TON"
+                        },
+                        {
+                            "comment": "Max time for batch to reach sensor",
+                            "propertyOrder": 12
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.FB_ExpiryMonitor": {
+            "properties": {
+                "dtNow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "dwExpiry": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DWORD"
+                        },
+                        {
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "dwNow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DWORD"
+                        },
+                        {
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "i": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "nDaysRemaining": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "nExpiredCount": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "How many batches are currently expired",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "nExpiringCount": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "How many are within warning period",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "nNormalCount": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "How many are healthy",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "nSecondsPerDay": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DWORD"
+                        },
+                        {
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "nWarningDays": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Days before expiry to issue warning",
+                            "propertyOrder": 2
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.FB_QuarantineHandler": {
+            "attributes": {
+                "TcImplements": "I_Zone"
+            },
+            "properties": {
+                "bEnable": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "bNewQuarantine": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "bQuarantineAlarm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE if any batch in quarantine",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "dtNow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "i": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "nQuarantineCount": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Total batches currently in Zone D",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "sLastQuarantined": {
+                    "allOf": [
+                        {
+                            "comment": "ID of most recently quarantined batch",
+                            "maxLength": 20,
+                            "propertyOrder": 5
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sStatusMessage": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                        },
+                        {
+                            "propertyOrder": 6
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.FB_StorageManager": {
+            "attributes": {
+                "TcImplements": "I_Zone"
+            },
+            "properties": {
+                "bASRS_RetrieveDone": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "ASRS confirmed retrieval complete",
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "bASRS_StoreDone": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "ASRS confirmed deposit complete",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "bCmd_Retrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: start retrieval sequence",
+                            "propertyOrder": 11
+                        }
+                    ]
+                },
+                "bCmd_Store": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Command: start storage sequence",
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "bEnable": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "bLastRetrieve": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 22
+                        }
+                    ]
+                },
+                "bLastStore": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Edge detection",
+                            "propertyOrder": 21
+                        }
+                    ]
+                },
+                "bRetrieveEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 24
+                        }
+                    ]
+                },
+                "bRetrieveRequest": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Rising edge: retrieve a batch",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "bSafeToOperate": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "bStoreEdge": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 23
+                        }
+                    ]
+                },
+                "bStoreFull": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE when all 20 slots occupied",
+                            "propertyOrder": 15
+                        }
+                    ]
+                },
+                "bStoreRequest": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Rising edge: new batch to store",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "bStoreSuccess": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Pulse: storage completed",
+                            "propertyOrder": 14
+                        }
+                    ]
+                },
+                "bWaitingForASRS": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE while ASRS is doing work",
+                            "propertyOrder": 25
+                        }
+                    ]
+                },
+                "dtNow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "eCurrentOperation": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "0=idle, 1=storing, 2=retrieving",
+                            "propertyOrder": 26
+                        }
+                    ]
+                },
+                "eRetrievalResult": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_RetrievalResult"
+                        },
+                        {
+                            "propertyOrder": 16
+                        }
+                    ]
+                },
+                "i": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Loop variable",
+                            "propertyOrder": 27
+                        }
+                    ]
+                },
+                "nCmd_TargetSlot": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Which slot ASRS should use",
+                            "propertyOrder": 12
+                        }
+                    ]
+                },
+                "nFoundSlot": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 28
+                        }
+                    ]
+                },
+                "nFreeSlots": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Counts",
+                            "propertyOrder": 18
+                        }
+                    ]
+                },
+                "nOccupiedSlots": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 19
+                        }
+                    ]
+                },
+                "nOldestIdx": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "propertyOrder": 29
+                        }
+                    ]
+                },
+                "sBatchIDToGet": {
+                    "allOf": [
+                        {
+                            "comment": "Specific ID or '' for FIFO",
+                            "maxLength": 20,
+                            "propertyOrder": 6
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sStatusMessage": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                        },
+                        {
+                            "propertyOrder": 20
+                        }
+                    ]
+                },
+                "stBatchToStore": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_MedicineBatch"
+                        },
+                        {
+                            "comment": "Batch data from FB_ReceivingZone",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "stCmd_BatchData": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_MedicineBatch"
+                        },
+                        {
+                            "comment": "Batch data for ASRS reference",
+                            "propertyOrder": 13
+                        }
+                    ]
+                },
+                "stRetrievedBatch": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.ST_MedicineBatch"
+                        },
+                        {
+                            "propertyOrder": 17
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.ST_ASRSPosition": {
+            "properties": {
+                "bAtTarget": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE = crane has reached this position",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "fX_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Horizontal distance from home",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "fY_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Vertical height from ground",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "nColumn": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Target column (1–4)",
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "nRow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Target row (1–5)",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "nSlotNumber": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Target slot (1–20), 0 = home position",
+                            "propertyOrder": 3
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.ST_ConveyorStatus": {
+            "properties": {
+                "bAtASRSEntry": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Batch has reached ASRS entry sensor",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "bAtDispatch": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Batch has reached dispatch exit sensor",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "bBatchOnBelt": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "Is a batch currently riding this belt?",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "bFault": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE = fault condition",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "eDirection": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_ConveyorDirection"
+                        },
+                        {
+                            "comment": "Current running direction",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "eState": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_ConveyorState"
+                        },
+                        {
+                            "comment": "Current mechanical state",
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "fBeltSpeed_ms": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Current belt speed (m/s)",
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "sBatchIDOnBelt": {
+                    "allOf": [
+                        {
+                            "comment": "Which batch (empty if belt is clear)",
+                            "maxLength": 20,
+                            "propertyOrder": 4
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sFaultMessage": {
+                    "allOf": [
+                        {
+                            "comment": "Fault description",
+                            "maxLength": 50,
+                            "propertyOrder": 9
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.ST_MedicineBatch": {
+            "properties": {
+                "bIsOccupied": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE = this array slot is in use",
+                            "propertyOrder": 11
+                        }
+                    ]
+                },
+                "dtEntryTime": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "comment": "When batch entered the warehouse",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "dtExpiryDate": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/DATE_AND_TIME"
+                        },
+                        {
+                            "comment": "When batch expires",
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "eCurrentZone": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_ZoneID"
+                        },
+                        {
+                            "comment": "Current physical location",
+                            "propertyOrder": 9
+                        }
+                    ]
+                },
+                "eStatus": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PLC1.E_MedicineStatus"
+                        },
+                        {
+                            "comment": "Current health status",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "fTempRequired_C": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Required storage temperature in °C",
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "fWeight_kg": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Batch weight in kilograms",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "nRackSlot": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Which slot (1–20), 0 = not in rack",
+                            "propertyOrder": 10
+                        }
+                    ]
+                },
+                "nRecordIndex": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Index in astBatches array (1–20)",
+                            "propertyOrder": 12
+                        }
+                    ]
+                },
+                "sBatchID": {
+                    "allOf": [
+                        {
+                            "comment": "Unique batch code (e.g. 'BATCH_2026_001')",
+                            "maxLength": 20,
+                            "propertyOrder": 1
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sManufacturer": {
+                    "allOf": [
+                        {
+                            "comment": "Manufacturer name",
+                            "maxLength": 30,
+                            "propertyOrder": 3
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                },
+                "sMedicineName": {
+                    "allOf": [
+                        {
+                            "comment": "Medicine description (e.g. 'Paracetamol 500mg')",
+                            "maxLength": 30,
+                            "propertyOrder": 2
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.ST_RackSlot": {
+            "properties": {
+                "bOccupied": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "TRUE = batch is sitting here",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "fCurrentWeight_kg": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Simulated load cell reading",
+                            "propertyOrder": 6
+                        }
+                    ]
+                },
+                "fPhysicalX_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "X position in warehouse (mm)",
+                            "propertyOrder": 7
+                        }
+                    ]
+                },
+                "fPhysicalY_mm": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/REAL"
+                        },
+                        {
+                            "comment": "Y position in warehouse (mm)",
+                            "propertyOrder": 8
+                        }
+                    ]
+                },
+                "nColumn": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Physical column 1 to 4",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "nRow": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Physical row 1 to 5",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "nSlotID": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "comment": "Slot number 1 to 20",
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "sBatchID": {
+                    "allOf": [
+                        {
+                            "comment": "Which batch is here (empty if free)",
+                            "maxLength": 20,
+                            "propertyOrder": 5
+                        },
+                        {
+                            "$ref": "tchmi:general#/definitions/String"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "PLC1.Tc2_Standard.TON": {
+            "properties": {
+                "ET": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/TIME"
+                        },
+                        {
+                            "comment": "elapsed time",
+                            "propertyOrder": 4
+                        }
+                    ]
+                },
+                "IN": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "starts timer with rising edge, resets timer with falling edge",
+                            "propertyOrder": 1
+                        }
+                    ]
+                },
+                "M": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "propertyOrder": 5
+                        }
+                    ]
+                },
+                "PT": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/TIME"
+                        },
+                        {
+                            "comment": "time to pass, before Q is set",
+                            "propertyOrder": 2
+                        }
+                    ]
+                },
+                "Q": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/BOOL"
+                        },
+                        {
+                            "comment": "gets TRUE, delay time (PT) after a rising edge at IN",
+                            "propertyOrder": 3
+                        }
+                    ]
+                },
+                "StartTime": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/TIME"
+                        },
+                        {
+                            "propertyOrder": 6
+                        }
+                    ]
+                }
+            },
+            "type": "object"
         }
     },
     "DEFLATECOMPRESSIONLEVEL": 5,
@@ -2599,6 +4561,23 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_MedicineDB.astBatches": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astBatches",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "-- Batch Records ------------------------------------------\r\n 20 batch records — one per batch that can be in system"
+                    },
+                    {
+                        "$ref": "tchmi:server#/definitions/PLC1.ARRAY_1..20_OF-ST_MedicineBatch"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_MedicineDB.astBatches.0.bIsOccupied": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2653,6 +4632,416 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_MedicineDB.astRackSlots.0.sBatchID": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[0]::sBatchID",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "Which batch is here (empty if free)",
+                        "maxLength": 20,
+                        "propertyOrder": 5
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.1": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[1]",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.ST_RackSlot"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.10.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[10]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.11.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[11]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.12.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[12]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.13.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[13]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.14.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[14]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.15.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[15]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.16.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[16]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.17.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[17]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.18.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[18]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.19.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[19]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.2.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[2]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.2.sBatchID": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[2]::sBatchID",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "Which batch is here (empty if free)",
+                        "maxLength": 20,
+                        "propertyOrder": 5
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.3.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[3]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.3.sBatchID": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[3]::sBatchID",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "Which batch is here (empty if free)",
+                        "maxLength": 20,
+                        "propertyOrder": 5
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.4.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[4]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.4.sBatchID": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[4]::sBatchID",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "Which batch is here (empty if free)",
+                        "maxLength": 20,
+                        "propertyOrder": 5
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.5.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[5]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.6.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[6]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.7.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[7]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.8.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[8]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_MedicineDB.astRackSlots.9.bOccupied": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_MedicineDB::astRackSlots[9]::bOccupied",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE = batch is sitting here",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_MedicineDB.stEnvData.fTemperature_C": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2683,6 +5072,91 @@
                     },
                     {
                         "comment": "Proximity sensor at Zone A"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_SimInputs.bSim_InputConv_AtEntry": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::bSim_InputConv_AtEntry",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Batch reached ASRS entry sensor"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_SimInputs.bSim_InputConv_Blocked": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::bSim_InputConv_Blocked",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Physical obstruction on input belt"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_SimInputs.bSim_OutputConv_AtDisp": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::bSim_OutputConv_AtDisp",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Batch reached dispatch exit sensor"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_SimInputs.bSim_OutputConv_Blocked": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::bSim_OutputConv_Blocked",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Physical obstruction on output belt"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.GVL_SimInputs.bSim_RetrievalRequest": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::bSim_RetrievalRequest",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Operator requests batch"
                     }
                 ]
             },
@@ -2795,6 +5269,24 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_SimInputs.sSim_RetrieveBatchID": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SimInputs::sSim_RetrieveBatchID",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "comment": "Specific ID (blank = FIFO)",
+                        "maxLength": 20
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_SimInputs.sSim_ScannedBatchID": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2830,6 +5322,23 @@
             },
             "USEMAPPING": true
         },
+        "PLC1.GVL_SystemState.bMasterEnable": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::GVL_SystemState::bMasterEnable",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Main ON/OFF — set FALSE = E-Stop"
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "PLC1.GVL_SystemState.eSystemMode": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -2837,6 +5346,225 @@
             "MAPPING": "PLC1::GVL_SystemState::eSystemMode",
             "SCHEMA": {
                 "$ref": "tchmi:server#/definitions/PLC1.E_SystemMode"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbASRS": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbASRS",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.FB_ASRSCoordinator"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbASRS.bFault": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbASRS::bFault",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 11
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bASRSFault": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bASRSFault",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 5
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bEmergencyStop": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bEmergencyStop",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 1
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bExpiredFound": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bExpiredFound",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 3
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bQuarantineAlarm": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bQuarantineAlarm",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bRackFull": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bRackFull",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 6
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.bTempAlarm": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::bTempAlarm",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 2
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbAlarm.nActiveAlarmCode": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbAlarm::nActiveAlarmCode",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/INT"
+                    },
+                    {
+                        "propertyOrder": 9
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbEnvCtrl.bTempAlarm": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbEnvCtrl::bTempAlarm",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "propertyOrder": 6
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbExpiry": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbExpiry",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.FB_ExpiryMonitor"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbExpiry.nExpiredCount": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbExpiry::nExpiredCount",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/INT"
+                    },
+                    {
+                        "comment": "How many batches are currently expired",
+                        "propertyOrder": 3
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbQuarantine": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbQuarantine",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.FB_QuarantineHandler"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbQuarantine.bQuarantineAlarm": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbQuarantine::bQuarantineAlarm",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE if any batch in quarantine",
+                        "propertyOrder": 4
+                    }
+                ]
             },
             "USEMAPPING": true
         },
@@ -2907,6 +5635,69 @@
                     {
                         "comment": "Current status for HMI display",
                         "propertyOrder": 14
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbStorage": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbStorage",
+            "SCHEMA": {
+                "$ref": "tchmi:server#/definitions/PLC1.FB_StorageManager"
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbStorage.bRetrieveRequest": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbStorage::bRetrieveRequest",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Rising edge: retrieve a batch",
+                        "propertyOrder": 5
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbStorage.bStoreFull": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbStorage::bStoreFull",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "TRUE when all 20 slots occupied",
+                        "propertyOrder": 15
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "PLC1.PRG_MAIN.fbStorage.eRetrievalResult": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "PLC1::PRG_MAIN::fbStorage::eRetrievalResult",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/PLC1.E_RetrievalResult"
+                    },
+                    {
+                        "propertyOrder": 16
                     }
                 ]
             },
@@ -3849,11 +6640,40 @@
                 "LocalizeText": 3,
                 "Login": 3,
                 "Logout": 3,
+                "PLC1.GVL_MedicineDB.astBatches": 3,
                 "PLC1.GVL_MedicineDB.astBatches.0.bIsOccupied": 3,
                 "PLC1.GVL_MedicineDB.astBatches.0.eStatus": 3,
                 "PLC1.GVL_MedicineDB.astRackSlots.0.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.0.sBatchID": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.1": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.10.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.11.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.12.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.13.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.14.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.15.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.16.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.17.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.18.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.19.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.2.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.2.sBatchID": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.3.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.3.sBatchID": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.4.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.4.sBatchID": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.5.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.6.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.7.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.8.bOccupied": 3,
+                "PLC1.GVL_MedicineDB.astRackSlots.9.bOccupied": 3,
                 "PLC1.GVL_MedicineDB.stEnvData.fTemperature_C": 3,
                 "PLC1.GVL_SimInputs.bSim_BatchArrived": 3,
+                "PLC1.GVL_SimInputs.bSim_InputConv_AtEntry": 3,
+                "PLC1.GVL_SimInputs.bSim_InputConv_Blocked": 3,
+                "PLC1.GVL_SimInputs.bSim_OutputConv_AtDisp": 3,
+                "PLC1.GVL_SimInputs.bSim_OutputConv_Blocked": 3,
+                "PLC1.GVL_SimInputs.bSim_RetrievalRequest": 3,
                 "PLC1.GVL_SimInputs.dtSim_ExpiryDate": 3,
                 "PLC1.GVL_SimInputs.fSim_TempRequired": 3,
                 "PLC1.GVL_SimInputs.fSim_Temperature_C": 3,
@@ -3861,13 +6681,33 @@
                 "PLC1.GVL_SimInputs.fSim_Weight_kg": 3,
                 "PLC1.GVL_SimInputs.sSim_BatchID": 3,
                 "PLC1.GVL_SimInputs.sSim_MedicineName": 3,
+                "PLC1.GVL_SimInputs.sSim_RetrieveBatchID": 3,
                 "PLC1.GVL_SimInputs.sSim_ScannedBatchID": 3,
                 "PLC1.GVL_SimInputs.sSim_ScannedMedName": 3,
+                "PLC1.GVL_SystemState.bMasterEnable": 3,
                 "PLC1.GVL_SystemState.eSystemMode": 3,
+                "PLC1.PRG_MAIN.fbASRS": 3,
+                "PLC1.PRG_MAIN.fbASRS.bFault": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bASRSFault": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bEmergencyStop": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bExpiredFound": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bQuarantineAlarm": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bRackFull": 3,
+                "PLC1.PRG_MAIN.fbAlarm.bTempAlarm": 3,
+                "PLC1.PRG_MAIN.fbAlarm.nActiveAlarmCode": 3,
+                "PLC1.PRG_MAIN.fbEnvCtrl.bTempAlarm": 3,
+                "PLC1.PRG_MAIN.fbExpiry": 3,
+                "PLC1.PRG_MAIN.fbExpiry.nExpiredCount": 3,
+                "PLC1.PRG_MAIN.fbQuarantine": 3,
+                "PLC1.PRG_MAIN.fbQuarantine.bQuarantineAlarm": 3,
                 "PLC1.PRG_MAIN.fbQuarantine.nQuarantineCount": 3,
                 "PLC1.PRG_MAIN.fbReceiving.bBatchAccepted": 3,
                 "PLC1.PRG_MAIN.fbReceiving.bBatchRejected": 3,
                 "PLC1.PRG_MAIN.fbReceiving.sStatusMessage": 3,
+                "PLC1.PRG_MAIN.fbStorage": 3,
+                "PLC1.PRG_MAIN.fbStorage.bRetrieveRequest": 3,
+                "PLC1.PRG_MAIN.fbStorage.bStoreFull": 3,
+                "PLC1.PRG_MAIN.fbStorage.eRetrievalResult": 3,
                 "PLC1.PRG_MAIN.fbStorage.nFreeSlots": 3,
                 "SetLocale": 3,
                 "SubscribeEvents": 3,
