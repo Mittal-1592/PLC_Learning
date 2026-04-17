@@ -1,0 +1,278 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="PRG_MAIN" Id="{3d16d8e7-ec00-4b8d-be2a-af459af9e7c3}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  PRG_MAIN
+  --------
+  The master orchestrator — runs every PLC scan cycle.
+  
+  EXECUTION ORDER (critical — do not change):
+    1. FB_SafetyInterlock  — evaluate all safety conditions FIRST
+    2. FB_EnvironmentControl — climate runs every cycle, always
+    3. FB_ExpiryMonitor    — date checking runs every cycle, always
+    4. FB_QuarantineHandler — reacts to expiry results, always
+    5. FB_ReceivingZone    — process new batch arrivals
+    6. FB_StorageManager   — process store/retrieve commands
+    7. FB_ASRSCoordinator  — execute physical ASRS operations
+    8. Handle recall trigger — from operator input
+    9. Register new batches in database
+   10. FB_AlarmManager     — collect all alarms last
+   11. Update eSystemMode  — set mode based on what is happening
+*)
+PROGRAM PRG_MAIN
+VAR
+    // ── Zone Function Block Instances ─────────────────────────────────
+    fbSafety        : FB_SafetyInterlock;
+    fbEnvCtrl       : FB_EnvironmentControl;
+    fbExpiry        : FB_ExpiryMonitor;
+    fbQuarantine    : FB_QuarantineHandler;
+    fbReceiving     : FB_ReceivingZone;
+    fbStorage       : FB_StorageManager;
+    fbASRS          : FB_ASRSCoordinator;
+    fbAlarm         : FB_AlarmManager;
+
+    // ── Loop variable ─────────────────────────────────────────────────
+    i               : INT;
+
+    // ── Initialization ────────────────────────────────────────────────
+    bInitDone       : BOOL := FALSE;
+	
+	 // Latch variables — catch pulse signals and hold them
+    bLatch_BatchAccepted    : BOOL;  // Stays TRUE after batch accepted
+    bLatch_BatchRejected    : BOOL;  // Stays TRUE after batch rejected
+    bLatch_StoreSuccess     : BOOL;  // Stays TRUE after storage complete
+    bLatch_RetrieveSuccess  : BOOL;  // Stays TRUE after retrieval complete
+    bLatch_QuarantineFired  : BOOL;  // Stays TRUE after quarantine
+
+    // Latch reset — you set this TRUE to clear all latches
+    bResetLatches           : BOOL;
+
+    // Debug string always showing system state
+    sDebugStatus            : STRING(120);
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// ═══════════════════════════════════════════════════════════════════════
+// ONE-TIME INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════
+IF NOT bInitDone THEN
+    // Initialize rack slot physical positions
+    FOR i := 1 TO GVL_Config.C_MAX_SLOTS DO
+        GVL_MedicineDB.astRackSlots[i].nSlotID  := i;
+        GVL_MedicineDB.astRackSlots[i].nColumn  := ((i - 1) MOD GVL_Config.C_RACK_COLUMNS) + 1;
+        GVL_MedicineDB.astRackSlots[i].nRow     := ((i - 1) / GVL_Config.C_RACK_COLUMNS) + 1;
+        GVL_MedicineDB.astRackSlots[i].fPhysicalX_mm :=
+            GVL_Config.C_FIRST_COL_X_MM
+            + INT_TO_REAL(GVL_MedicineDB.astRackSlots[i].nColumn - 1) * GVL_Config.C_COL_SPACING_MM;
+        GVL_MedicineDB.astRackSlots[i].fPhysicalY_mm :=
+            GVL_Config.C_FIRST_ROW_Y_MM
+            + INT_TO_REAL(GVL_MedicineDB.astRackSlots[i].nRow - 1) * GVL_Config.C_ROW_SPACING_MM;
+    END_FOR
+    bInitDone := TRUE;
+END_IF
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 1 — SAFETY INTERLOCK (must run first)
+// ═══════════════════════════════════════════════════════════════════════
+fbSafety(
+    bMasterEnable   := GVL_SystemState.bMasterEnable,
+    bTempAlarm      := GVL_MedicineDB.stEnvData.bTempAlarm,
+    bASRSFault      := GVL_MedicineDB.bASRS_Fault,
+    bRackFull       := fbStorage.bStoreFull,
+    bConveyorFault  := fbStorage.bStoreFull  // placeholder — refine if needed
+);
+fbSafety.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 2 — ENVIRONMENT CONTROL (always runs)
+// ═══════════════════════════════════════════════════════════════════════
+fbEnvCtrl(
+    bEnable             := GVL_SystemState.bMasterEnable,
+    fActualTemp_C       := GVL_SimInputs.fSim_Temperature_C,
+    fActualHumid_Pct    := GVL_SimInputs.fSim_Humidity_Pct
+);
+fbEnvCtrl.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 3 — EXPIRY MONITOR (always runs every cycle)
+// ═══════════════════════════════════════════════════════════════════════
+fbExpiry(
+    dtNow           := GVL_SystemState.dtCurrentTime,
+    nWarningDays    := GVL_Config.C_EXPIRY_WARNING_DAYS
+);
+fbExpiry.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 4 — QUARANTINE HANDLER (reacts to expiry results)
+// ═══════════════════════════════════════════════════════════════════════
+fbQuarantine(
+    bEnable         := TRUE,
+    dtNow           := GVL_SystemState.dtCurrentTime
+);
+fbQuarantine.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 5 — ZONE A: RECEIVING
+// ═══════════════════════════════════════════════════════════════════════
+fbReceiving(
+    bEnable             := GVL_SystemState.bMasterEnable,
+    bSafeToOperate      := GVL_SystemState.bSafeToOperate,
+    bBatchArrived       := GVL_SimInputs.bSim_BatchArrived,
+    sBatchID            := GVL_SimInputs.sSim_BatchID,
+    sMedicineName       := GVL_SimInputs.sSim_MedicineName,
+    sManufacturer       := GVL_SimInputs.sSim_Manufacturer,
+    fWeight_kg          := GVL_SimInputs.fSim_Weight_kg,
+    fTempRequired_C     := GVL_SimInputs.fSim_TempRequired_C,
+    dtExpiryDate        := GVL_SimInputs.dtSim_ExpiryDate,
+    dtNow               := GVL_SystemState.dtCurrentTime
+);
+fbReceiving.Execute();
+
+// If Zone A accepted a new batch, register it in the database
+IF fbReceiving.bBatchAccepted THEN
+    FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+        IF NOT GVL_MedicineDB.astBatches[i].bIsOccupied THEN
+            GVL_MedicineDB.astBatches[i]             := fbReceiving.stNewBatch;
+            GVL_MedicineDB.astBatches[i].nRecordIndex := i;
+            GVL_MedicineDB.nTotalBatches             := GVL_MedicineDB.nTotalBatches + 1;
+            EXIT;
+        END_IF
+    END_FOR
+END_IF
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 6 — ZONE B: STORAGE MANAGER
+// ═══════════════════════════════════════════════════════════════════════
+fbStorage(
+    bEnable             := GVL_SystemState.bMasterEnable,
+    bSafeToOperate      := GVL_SystemState.bSafeToStore,
+    bStoreRequest       := fbReceiving.bBatchAccepted,
+    stBatchToStore      := fbReceiving.stNewBatch,
+    bRetrieveRequest    := GVL_SimInputs.bSim_RetrievalRequest,
+    sBatchIDToGet       := GVL_SimInputs.sSim_RetrieveBatchID,
+    dtNow               := GVL_SystemState.dtCurrentTime,
+    bASRS_StoreDone     := fbASRS.bStorageComplete,
+    bASRS_RetrieveDone  := fbASRS.bRetrievalComplete
+);
+fbStorage.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 7 — ASRS COORDINATOR
+// ═══════════════════════════════════════════════════════════════════════
+fbASRS(
+    bEnable             := GVL_SystemState.bMasterEnable,
+    bCmd_Store          := fbStorage.bCmd_Store,
+    bCmd_Retrieve       := fbStorage.bCmd_Retrieve,
+    stBatchToStore      := fbStorage.stCmd_BatchData,
+    nSlotToRetrieve     := fbStorage.nCmd_TargetSlot,
+    sRetrieveBatchID    := GVL_SimInputs.sSim_RetrieveBatchID,
+    dtNow               := GVL_SystemState.dtCurrentTime
+);
+fbASRS.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 8 — RECALL TRIGGER (operator-initiated)
+// ═══════════════════════════════════════════════════════════════════════
+IF GVL_SimInputs.bSim_RecallTrigger THEN
+    FOR i := 1 TO GVL_Config.C_MAX_BATCHES DO
+        IF GVL_MedicineDB.astBatches[i].sBatchID = GVL_SimInputs.sSim_RecallBatchID
+           AND GVL_MedicineDB.astBatches[i].bIsOccupied THEN
+            GVL_MedicineDB.astBatches[i].eStatus := MEDICINE_RECALLED;
+            // FB_QuarantineHandler will detect this next cycle and isolate it
+            EXIT;
+        END_IF
+    END_FOR
+END_IF
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 9 — ALARM MANAGER (collects all alarm states)
+// ═══════════════════════════════════════════════════════════════════════
+fbAlarm(
+    bEmergencyStop  := NOT GVL_SystemState.bMasterEnable,
+    bTempAlarm      := fbEnvCtrl.bTempAlarm,
+    bExpiredFound   := fbExpiry.nExpiredCount > 0,
+    bQuarantineAlarm := fbQuarantine.bQuarantineAlarm,
+    bASRSFault      := fbASRS.bFault,
+    bRackFull       := fbStorage.bStoreFull,
+    bHumidityAlarm  := fbEnvCtrl.bHumidityAlarm
+);
+fbAlarm.Execute();
+
+// ═══════════════════════════════════════════════════════════════════════
+// STEP 10 — SYSTEM MODE STATE MACHINE (priority based)
+// ═══════════════════════════════════════════════════════════════════════
+IF NOT GVL_SystemState.bMasterEnable THEN
+    GVL_SystemState.eSystemMode := MODE_EMERGENCY;
+
+ELSIF fbASRS.bBusy THEN
+    // Show what ASRS is specifically doing
+    CASE fbASRS.eCoordState OF
+        ASRS_DEPOSITING,
+        ASRS_MOVING_TO_SLOT : GVL_SystemState.eSystemMode := MODE_STORING;
+        ASRS_RETRIEVING,
+        ASRS_MOVING_TO_CONV,
+        ASRS_HANDING_OVER   : GVL_SystemState.eSystemMode := MODE_RETRIEVING;
+    ELSE
+        GVL_SystemState.eSystemMode := MODE_STORING;
+    END_CASE
+
+ELSIF GVL_SimInputs.bSim_BatchArrived THEN
+    GVL_SystemState.eSystemMode := MODE_RECEIVING;
+
+ELSIF fbQuarantine.nQuarantineCount > 0 THEN
+    GVL_SystemState.eSystemMode := MODE_QUARANTINE;
+
+ELSE
+    GVL_SystemState.eSystemMode := MODE_IDLE;
+END_IF
+
+
+// ── Latch capture ─────────────────────────────────────────────────────
+IF fbReceiving.bBatchAccepted  THEN bLatch_BatchAccepted   := TRUE; END_IF
+IF fbReceiving.bBatchRejected  THEN bLatch_BatchRejected   := TRUE; END_IF
+IF fbStorage.bStoreSuccess     THEN bLatch_StoreSuccess    := TRUE; END_IF
+IF fbASRS.bRetrievalComplete   THEN bLatch_RetrieveSuccess := TRUE; END_IF
+IF fbQuarantine.bQuarantineAlarm THEN bLatch_QuarantineFired := TRUE; END_IF
+
+// ── Reset latches when you press bResetLatches = TRUE ─────────────────
+IF bResetLatches THEN
+    bLatch_BatchAccepted   := FALSE;
+    bLatch_BatchRejected   := FALSE;
+    bLatch_StoreSuccess    := FALSE;
+    bLatch_RetrieveSuccess := FALSE;
+    bLatch_QuarantineFired := FALSE;
+    bResetLatches          := FALSE;
+END_IF
+
+// ── Debug status string ───────────────────────────────────────────────
+IF NOT GVL_SystemState.bMasterEnable THEN
+    sDebugStatus := 'BLOCKED: Master enable OFF — press E-Stop to restore';
+ELSIF fbStorage.bWaitingForASRS THEN
+    sDebugStatus := CONCAT('WAITING: ASRS busy — operation ','oih');
+    sDebugStatus := CONCAT(sDebugStatus, ' | ASRS state: ');
+    sDebugStatus := CONCAT(sDebugStatus,
+                     INT_TO_STRING(fbASRS.nState));
+ELSIF fbASRS.bFault THEN
+    sDebugStatus := 'FAULT: ASRS fault — check bSim_Crane_Fault';
+ELSIF fbStorage.bStoreFull THEN
+    sDebugStatus := 'FULL: All 20 slots occupied';
+ELSIF GVL_MedicineDB.stEnvData.bTempAlarm THEN
+    sDebugStatus := 'ALARM: Temperature out of range';
+ELSE
+    sDebugStatus := CONCAT('READY | Free: ', INT_TO_STRING(fbStorage.nFreeSlots));
+    sDebugStatus := CONCAT(sDebugStatus, '/20 | Batches: ');
+    sDebugStatus := CONCAT(sDebugStatus,
+                     INT_TO_STRING(GVL_MedicineDB.nTotalBatches));
+    sDebugStatus := CONCAT(sDebugStatus, ' | Quarantined: ');
+    sDebugStatus := CONCAT(sDebugStatus,
+                     INT_TO_STRING(fbQuarantine.nQuarantineCount));
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_MAIN">
+      <LineId Id="485" Count="171" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="710" Count="23" />
+      <LineId Id="735" Count="16" />
+      <LineId Id="709" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

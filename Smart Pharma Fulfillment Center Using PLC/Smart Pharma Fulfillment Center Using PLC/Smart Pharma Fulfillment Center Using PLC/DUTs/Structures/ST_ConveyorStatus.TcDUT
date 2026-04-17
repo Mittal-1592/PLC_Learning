@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_ConveyorStatus" Id="{e7862a34-382b-49b5-b5d6-4bf18915d389}">
+    <Declaration><![CDATA[(*
+  ST_ConveyorStatus
+  -----------------
+  Complete state description of one conveyor belt.
+  Two instances in GVL_MedicineDB:
+    stInputConveyor  — belt from Zone A gate to ASRS entry
+    stOutputConveyor — belt from ASRS exit to dispatch point
+*)
+TYPE ST_ConveyorStatus :
+STRUCT
+    // State
+    eState          : E_ConveyorState;      // Current mechanical state
+    eDirection      : E_ConveyorDirection;  // Current running direction
+
+    // Batch tracking
+    bBatchOnBelt    : BOOL;                 // Is a batch currently riding this belt?
+    sBatchIDOnBelt  : STRING(20);           // Which batch (empty if belt is clear)
+
+    // Position sensors (simulated)
+    bAtASRSEntry    : BOOL;                 // Batch has reached ASRS entry sensor
+    bAtDispatch     : BOOL;                 // Batch has reached dispatch exit sensor
+
+    // Performance
+    fBeltSpeed_ms   : REAL;                 // Current belt speed (m/s)
+
+    // Fault info
+    bFault          : BOOL;                 // TRUE = fault condition
+    sFaultMessage   : STRING(50);           // Fault description
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

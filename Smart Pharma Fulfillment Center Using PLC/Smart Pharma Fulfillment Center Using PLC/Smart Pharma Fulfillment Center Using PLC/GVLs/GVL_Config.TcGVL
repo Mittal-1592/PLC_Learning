@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <GVL Name="GVL_Config" Id="{6ba305a1-9fea-4239-a3eb-f41e6397e6b3}">
+    <Declaration><![CDATA[(*
+  GVL_Config
+  ----------
+  All system constants in one place.
+  NEVER use magic numbers in any FB or PRG.
+  Always reference these constants instead.
+  To change a parameter (e.g. timing or rack size),
+  change it ONCE here and it applies everywhere.
+*)
+VAR_GLOBAL CONSTANT
+
+    // ── Rack Physical Configuration ────────────────────────────
+    C_MAX_BATCHES           : INT   := 20;      // Max batches in system
+    C_RACK_COLUMNS          : INT   := 4;       // Columns in rack (X axis)
+    C_RACK_ROWS             : INT   := 5;       // Rows in rack (Y axis)
+    C_MAX_SLOTS             : INT   := 20;      // Total slots (columns × rows)
+
+    // ── Physical Dimensions (millimeters) ──────────────────────
+    C_COL_SPACING_MM        : REAL  := 300.0;   // Distance between columns
+    C_ROW_SPACING_MM        : REAL  := 400.0;   // Distance between rows
+    C_HOME_X_MM             : REAL  := 0.0;     // Crane home X position
+    C_HOME_Y_MM             : REAL  := 0.0;     // Crane home Y position
+    C_FIRST_COL_X_MM        : REAL  := 150.0;   // X position of column 1
+    C_FIRST_ROW_Y_MM        : REAL  := 200.0;   // Y position of row 1
+
+    // ── Environment Setpoints ──────────────────────────────────
+    C_TEMP_SETPOINT_C       : REAL  := 15.0;    // Target temperature °C
+    C_TEMP_TOLERANCE_C      : REAL  := 2.0;     // Acceptable ± deviation
+    C_TEMP_ALARM_MULT       : REAL  := 2.0;     // Alarm at ± (tolerance × mult)
+    C_HUMID_SETPOINT_PCT    : REAL  := 40.0;    // Target humidity %
+    C_HUMID_TOLERANCE_PCT   : REAL  := 10.0;    // Acceptable ± deviation
+
+    // ── Timing (simulation) ────────────────────────────────────
+    C_CONV_TRAVEL_TIME      : TIME  := T#5S;    // Belt: gate to ASRS entry
+    C_CRANE_X_TRAVEL_TIME   : TIME  := T#4S;    // Crane: horizontal movement
+    C_CRANE_Y_TRAVEL_TIME   : TIME  := T#3S;    // Crane: vertical movement
+    C_CRANE_DEPOSIT_TIME    : TIME  := T#2S;    // Crane: deposit arm operation
+    C_CRANE_RETRIEVE_TIME   : TIME  := T#2S;    // Crane: retrieve arm operation
+    C_CRANE_HANDOVER_TIME   : TIME  := T#1S;    // Crane: handover to conveyor
+    C_CONV_BLOCK_TIMEOUT    : TIME  := T#30S;   // Belt: max run time before fault
+
+    // ── Business Rules ─────────────────────────────────────────
+    C_EXPIRY_WARNING_DAYS   : INT   := 30;      // Days before expiry to warn
+    C_DEFAULT_BELT_SPEED    : REAL  := 0.3;     // Default belt speed m/s
+    C_MIN_WEIGHT_KG         : REAL  := 0.1;     // Minimum valid batch weight
+
+    // ── Alarm Codes ────────────────────────────────────────────
+    C_ALARM_ESTOP           : INT   := 100;
+    C_ALARM_TEMPERATURE     : INT   := 200;
+    C_ALARM_EXPIRED         : INT   := 300;
+    C_ALARM_QUARANTINE      : INT   := 400;
+    C_ALARM_ASRS_FAULT      : INT   := 500;
+    C_ALARM_RACK_FULL       : INT   := 600;
+    C_ALARM_HUMIDITY        : INT   := 700;
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

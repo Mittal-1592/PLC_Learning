@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <GVL Name="GVL_SystemState" Id="{bcbe56bb-a0cb-4c5a-b328-b21e1ab65bfd}">
+    <Declaration><![CDATA[(*
+  GVL_SystemState
+  ---------------
+  Live operating state of the entire system.
+  Every FB reads bMasterEnable before doing anything.
+  PRG_MAIN writes eSystemMode every scan cycle.
+  FB_AlarmManager writes stAlarms every scan cycle.
+*)
+VAR_GLOBAL
+
+    // Master control
+    bMasterEnable           : BOOL := TRUE;         // Main ON/OFF — set FALSE = E-Stop
+    eSystemMode             : E_SystemMode := MODE_IDLE; // Current system mode
+
+    // Simulated clock (set manually in Watch Window or HMI)
+    dtCurrentTime           : DATE_AND_TIME;        // System clock for expiry calculations
+
+    // Alarm state
+    stAlarms                : ST_SystemAlarms;      // Written by FB_AlarmManager
+
+    // Safety interlock outputs
+    bSafeToOperate          : BOOL := FALSE;        // Written by FB_SafetyInterlock
+    bSafeToStore            : BOOL := FALSE;        // OK to run storage operation
+    bSafeToRetrieve         : BOOL := FALSE;        // OK to run retrieval operation
+
+    // Diagnostic counters
+    nTotalStoredToday       : INT := 0;             // Batches stored this session
+    nTotalRetrievedToday    : INT := 0;             // Batches retrieved this session
+    nTotalQuarantinedToday  : INT := 0;             // Batches quarantined this session
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

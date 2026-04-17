@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_FIFOQueue" Id="{9cba5434-4ead-4b3d-a324-4e5be482d769}">
+    <Declaration><![CDATA[TYPE ST_FIFOQueue :
+STRUCT
+    aBatchIDs   : ARRAY[1..20] OF STRING(20);  
+    nHead       : INT;    
+    nTail       : INT;    
+    nCount      : INT;    
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

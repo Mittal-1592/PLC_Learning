@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_RackSlot" Id="{046d95fe-58b2-40f9-bf4d-bd9a2c8bed30}">
+    <Declaration><![CDATA[(*
+  ST_RackSlot
+  -----------
+  Represents one physical shelf slot in the Zone B storage rack.
+  20 of these live in GVL_MedicineDB.astRackSlots[1..20].
+  Layout: 4 columns × 5 rows.
+  Slot numbering: Slot 1-4 = Row 1, Slot 5-8 = Row 2, etc.
+*)
+TYPE ST_RackSlot :
+STRUCT
+    nSlotID             : INT;              // Slot number 1 to 20
+    nColumn             : INT;              // Physical column 1 to 4
+    nRow                : INT;              // Physical row 1 to 5
+    bOccupied           : BOOL;             // TRUE = batch is sitting here
+    sBatchID            : STRING(20);       // Which batch is here (empty if free)
+    fCurrentWeight_kg   : REAL;             // Simulated load cell reading
+    fPhysicalX_mm       : REAL;             // X position in warehouse (mm)
+    fPhysicalY_mm       : REAL;             // Y position in warehouse (mm)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

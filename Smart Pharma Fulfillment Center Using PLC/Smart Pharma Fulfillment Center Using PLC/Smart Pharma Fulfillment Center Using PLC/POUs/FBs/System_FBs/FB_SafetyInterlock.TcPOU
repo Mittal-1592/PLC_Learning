@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_SafetyInterlock" Id="{7bc5229f-1c2f-4706-aebf-1c01b0382565}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_SafetyInterlock
+  ------------------
+  Evaluates all safety conditions before allowing operations.
+  This FB is the LAST DEFENSE before any physical action.
+  
+  bSafeToOperate = general system enable (no e-stop, no critical alarm)
+  bSafeToStore   = OK to place a new batch (also rack not full, no temp alarm)
+  bSafeToRetrieve = OK to retrieve a batch (also ASRS healthy)
+  
+  PRG_MAIN reads these outputs and passes them to each zone FB.
+*)
+FUNCTION_BLOCK FB_SafetyInterlock
+VAR_INPUT
+    bMasterEnable       : BOOL;
+    bTempAlarm          : BOOL;
+    bASRSFault          : BOOL;
+    bRackFull           : BOOL;
+    bConveyorFault      : BOOL;
+END_VAR
+
+VAR_OUTPUT
+    bSafeToOperate      : BOOL;
+    bSafeToStore        : BOOL;
+    bSafeToRetrieve     : BOOL;
+    sSafetyStatus       : STRING(80);
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{86df57d3-1c7c-4dc8-b600-4bc8dd0f1bea}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Base condition: master switch must be ON
+bSafeToOperate  := bMasterEnable AND NOT bTempAlarm;
+
+// Storage safe: system safe + rack not full + no temperature issue
+bSafeToStore    := bSafeToOperate AND NOT bRackFull AND NOT bTempAlarm;
+
+// Retrieval safe: system safe + ASRS has no fault
+bSafeToRetrieve := bSafeToOperate AND NOT bASRSFault AND NOT bConveyorFault;
+
+// Status message
+IF NOT bMasterEnable THEN
+    sSafetyStatus := 'SAFETY: Master enable OFF — all operations blocked';
+ELSIF bTempAlarm THEN
+    sSafetyStatus := 'SAFETY: Temperature alarm — storage blocked';
+ELSIF bASRSFault THEN
+    sSafetyStatus := 'SAFETY: ASRS fault — retrieval blocked';
+ELSIF bRackFull THEN
+    sSafetyStatus := 'SAFETY: Rack full — storage blocked';
+ELSE
+    sSafetyStatus := 'SAFETY: All conditions met — operations permitted';
+END_IF
+
+// Write to GVL
+GVL_SystemState.bSafeToOperate  := bSafeToOperate;
+GVL_SystemState.bSafeToStore    := bSafeToStore;
+GVL_SystemState.bSafeToRetrieve := bSafeToRetrieve;
+
+Execute := bSafeToOperate;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SafetyInterlock">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SafetyInterlock.Execute">
+      <LineId Id="6" Count="26" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

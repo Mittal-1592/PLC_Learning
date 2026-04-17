@@ -1,0 +1,229 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_ASRSCrane" Id="{1c1735b0-52ac-4be9-882c-22250e20a946}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  FB_ASRSCrane
+  ------------
+  Controls the ASRS robotic crane — the heart of Zone B.
+
+  PHYSICAL MODEL:
+  The crane runs on two axes:
+    X axis (horizontal) — moves between 4 columns
+    Y axis (vertical)   — moves between 5 rows
+  
+  Slot-to-physical position formula:
+    Column = ((SlotNumber - 1) MOD 4) + 1
+    Row    = ((SlotNumber - 1) / 4) + 1
+    X_mm   = C_FIRST_COL_X_MM + (Column-1) × C_COL_SPACING_MM
+    Y_mm   = C_FIRST_ROW_Y_MM + (Row-1)    × C_ROW_SPACING_MM
+
+  STATE MACHINE:
+  For STORE:
+    IDLE → MOVING_TO_SLOT → DEPOSITING → MOVING_TO_CONV → HANDING_OVER → IDLE
+  For RETRIEVE:
+    IDLE → MOVING_TO_SLOT → RETRIEVING → MOVING_TO_CONV → HANDING_OVER → IDLE
+*)
+FUNCTION_BLOCK FB_ASRSCrane
+VAR_INPUT
+    bEnable                 : BOOL;
+    bCmd_Store              : BOOL;         // Command: go to slot and deposit
+    bCmd_Retrieve           : BOOL;         // Command: go to slot and pick up
+    nTargetSlot             : INT;          // Slot number (1–20)
+    sBatchIDToHandle        : STRING(20);   // Which batch (for status messages)
+    // Simulated sensor inputs
+    bSim_AtTarget           : BOOL;         // Position sensor: arrived at target
+    bSim_DepositDone        : BOOL;         // Arm sensor: deposit complete
+    bSim_RetrieveDone       : BOOL;         // Gripper: pick-up complete
+    bSim_Fault              : BOOL;         // Drive fault from VFD
+    fSim_X_mm               : REAL;         // X encoder reading
+    fSim_Y_mm               : REAL;         // Y encoder reading
+END_VAR
+
+VAR_OUTPUT
+    eState                  : E_ASRSState;
+    stCurrentPos            : ST_ASRSPosition;
+    stTargetPos             : ST_ASRSPosition;
+    bReadyForCommand        : BOOL;         // TRUE when crane is idle
+    bDepositComplete        : BOOL;         // Pulse: deposit finished
+    bRetrieveComplete       : BOOL;         // Pulse: retrieve finished
+    bHandoverComplete       : BOOL;         // Pulse: placed on output conveyor
+    bFault                  : BOOL;
+    sStatusMessage          : STRING(80);
+END_VAR
+
+VAR
+    // Timers
+    tonXTravel              : TON;
+    tonYTravel              : TON;
+    tonDeposit              : TON;
+    tonRetrieve             : TON;
+    tonHandover             : TON;
+    tonFaultDelay           : TON;
+
+    // Internal
+    bStoreEdge              : BOOL;
+    bLastStore              : BOOL;
+    bRetrieveEdge           : BOOL;
+    bLastRetrieve           : BOOL;
+    bIsStoreOperation       : BOOL;         // TRUE=storing, FALSE=retrieving
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Execute" Id="{f77bb2fe-85be-4ae9-8d7e-5338ef0b11ee}">
+      <Declaration><![CDATA[METHOD Execute : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ── Edge detection ────────────────────────────────────────────────────
+bStoreEdge    := bCmd_Store    AND NOT bLastStore;
+bLastStore    := bCmd_Store;
+bRetrieveEdge := bCmd_Retrieve AND NOT bLastRetrieve;
+bLastRetrieve := bCmd_Retrieve;
+
+// ── Calculate target physical position from slot number ──────────────
+IF nTargetSlot >= 1 AND nTargetSlot <= GVL_Config.C_MAX_SLOTS THEN
+    stTargetPos.nColumn     := ((nTargetSlot - 1) MOD GVL_Config.C_RACK_COLUMNS) + 1;
+    stTargetPos.nRow        := ((nTargetSlot - 1) / GVL_Config.C_RACK_COLUMNS) + 1;
+    stTargetPos.nSlotNumber := nTargetSlot;
+    stTargetPos.fX_mm       := GVL_Config.C_FIRST_COL_X_MM
+                               + INT_TO_REAL(stTargetPos.nColumn - 1) * GVL_Config.C_COL_SPACING_MM;
+    stTargetPos.fY_mm       := GVL_Config.C_FIRST_ROW_Y_MM
+                               + INT_TO_REAL(stTargetPos.nRow - 1) * GVL_Config.C_ROW_SPACING_MM;
+END_IF
+
+// ── Update current position from simulation ──────────────────────────
+stCurrentPos.fX_mm := fSim_X_mm;
+stCurrentPos.fY_mm := fSim_Y_mm;
+
+// ── Timers ────────────────────────────────────────────────────────────
+tonXTravel(IN  := (eState = ASRS_MOVING_TO_SLOT OR eState = ASRS_MOVING_TO_CONV),
+           PT  := GVL_Config.C_CRANE_X_TRAVEL_TIME);
+tonYTravel(IN  := (eState = ASRS_MOVING_TO_SLOT OR eState = ASRS_MOVING_TO_CONV),
+           PT  := GVL_Config.C_CRANE_Y_TRAVEL_TIME);
+tonDeposit(IN  := (eState = ASRS_DEPOSITING OR eState = ASRS_HANDING_OVER),
+           PT  := GVL_Config.C_CRANE_DEPOSIT_TIME);
+tonRetrieve(IN := (eState = ASRS_RETRIEVING),
+            PT := GVL_Config.C_CRANE_RETRIEVE_TIME);
+tonFaultDelay(IN := bSim_Fault, PT := T#500MS);
+
+// ── Fault detection ───────────────────────────────────────────────────
+IF NOT bEnable THEN
+    eState          := ASRS_IDLE;
+    bReadyForCommand := TRUE;
+    bFault          := FALSE;
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+IF tonFaultDelay.Q THEN
+    eState          := ASRS_FAULT;
+    bFault          := TRUE;
+    sStatusMessage  := 'ASRS FAULT: Drive error — manual intervention required';
+    Execute := FALSE;
+    RETURN;
+END_IF
+
+// ── State Machine ─────────────────────────────────────────────────────
+// Clear pulse outputs
+bDepositComplete  := FALSE;
+bRetrieveComplete := FALSE;
+bHandoverComplete := FALSE;
+
+CASE eState OF
+
+    ASRS_IDLE:
+        bReadyForCommand := TRUE;
+        bFault           := FALSE;
+        sStatusMessage   := 'ASRS: Idle at home position — ready';
+
+        IF bStoreEdge AND nTargetSlot > 0 THEN
+            bIsStoreOperation   := TRUE;
+            bReadyForCommand    := FALSE;
+            eState              := ASRS_MOVING_TO_SLOT;
+            sStatusMessage      := CONCAT('ASRS: Moving to store at slot ',
+                                     INT_TO_STRING(nTargetSlot));
+        END_IF
+
+        IF bRetrieveEdge AND nTargetSlot > 0 THEN
+            bIsStoreOperation   := FALSE;
+            bReadyForCommand    := FALSE;
+            eState              := ASRS_MOVING_TO_SLOT;
+            sStatusMessage      := CONCAT('ASRS: Moving to retrieve from slot ',
+                                     INT_TO_STRING(nTargetSlot));
+        END_IF
+
+    ASRS_MOVING_TO_SLOT:
+        sStatusMessage := CONCAT('ASRS: Traveling — Target X:',
+                            REAL_TO_STRING(stTargetPos.fX_mm));
+        sStatusMessage := CONCAT(sStatusMessage, 'mm Y:');
+        sStatusMessage := CONCAT(sStatusMessage, REAL_TO_STRING(stTargetPos.fY_mm));
+        sStatusMessage := CONCAT(sStatusMessage, 'mm');
+
+        IF (tonXTravel.Q AND tonYTravel.Q) OR bSim_AtTarget THEN
+            stCurrentPos.bAtTarget     := TRUE;
+            stCurrentPos.nSlotNumber   := nTargetSlot;
+            IF bIsStoreOperation THEN
+                eState := ASRS_DEPOSITING;
+                sStatusMessage := CONCAT('ASRS: At slot — depositing ',
+                                    sBatchIDToHandle);
+            ELSE
+                eState := ASRS_RETRIEVING;
+                sStatusMessage := CONCAT('ASRS: At slot — retrieving ',
+                                    sBatchIDToHandle);
+            END_IF
+        END_IF
+
+    ASRS_DEPOSITING:
+        sStatusMessage := 'ASRS: Lowering batch into rack slot...';
+        IF tonDeposit.Q OR bSim_DepositDone THEN
+            bDepositComplete    := TRUE;
+            eState              := ASRS_MOVING_TO_CONV;
+            sStatusMessage      := 'ASRS: Deposit done — returning to conveyor';
+        END_IF
+
+    ASRS_RETRIEVING:
+        sStatusMessage := 'ASRS: Gripping batch from slot...';
+        IF tonRetrieve.Q OR bSim_RetrieveDone THEN
+            bRetrieveComplete   := TRUE;
+            eState              := ASRS_MOVING_TO_CONV;
+            sStatusMessage      := 'ASRS: Retrieved — moving to output conveyor';
+        END_IF
+
+    ASRS_MOVING_TO_CONV:
+        sStatusMessage := 'ASRS: Returning to conveyor handoff point';
+        IF tonXTravel.Q AND tonYTravel.Q THEN
+            eState         := ASRS_HANDING_OVER;
+            sStatusMessage := 'ASRS: At conveyor — placing batch';
+        END_IF
+
+    ASRS_HANDING_OVER:
+        sStatusMessage := 'ASRS: Handing batch to output conveyor...';
+        IF tonDeposit.Q THEN
+            bHandoverComplete := TRUE;
+            eState            := ASRS_IDLE;
+            sStatusMessage    := 'ASRS: Handover complete — back to idle';
+        END_IF
+
+END_CASE
+
+// Write state to GVL for HMI
+GVL_MedicineDB.eASRS_State      := eState;
+GVL_MedicineDB.stASRS_CurrentPos := stCurrentPos;
+GVL_MedicineDB.stASRS_TargetPos  := stTargetPos;
+GVL_MedicineDB.bASRS_Busy        := (eState <> ASRS_IDLE);
+GVL_MedicineDB.bASRS_Fault       := bFault;
+
+Execute := (eState <> ASRS_IDLE);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ASRSCrane">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASRSCrane.Execute">
+      <LineId Id="6" Count="138" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

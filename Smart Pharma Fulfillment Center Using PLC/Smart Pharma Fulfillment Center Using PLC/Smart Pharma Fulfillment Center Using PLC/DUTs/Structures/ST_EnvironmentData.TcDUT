@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <DUT Name="ST_EnvironmentData" Id="{df11a634-d007-49dc-addf-2021c61520ab}">
+    <Declaration><![CDATA[(*
+  ST_EnvironmentData
+  ------------------
+  A complete snapshot of Zone C environmental conditions.
+  FB_EnvironmentControl reads sensor inputs and writes all fields here.
+  One instance lives in GVL_MedicineDB.stEnvData.
+*)
+TYPE ST_EnvironmentData :
+STRUCT
+    // Actual readings (from sensors / simulation)
+    fTemperature_C      : REAL;             // Current temperature in °C
+    fHumidity_Pct       : REAL;             // Current relative humidity in %
+
+    // Setpoints (from GVL_Config constants)
+    fTempSetpoint_C     : REAL;             // Target temperature (default 15.0°C)
+    fHumidSetpoint_Pct  : REAL;             // Target humidity (default 40.0%)
+
+    // Control outputs
+    bCoolingActive      : BOOL;             // TRUE = cooling system is running
+    bHeatingActive      : BOOL;             // TRUE = heating system is running
+
+    // Alarm flags
+    bTempAlarm          : BOOL;             // TRUE = temperature outside safe range
+    bHumidityAlarm      : BOOL;             // TRUE = humidity outside safe range
+
+    // Status text (for HMI display)
+    sStatus             : STRING(50);       // e.g. 'ENVIRONMENT OK' or 'COOLING ACTIVE'
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>
