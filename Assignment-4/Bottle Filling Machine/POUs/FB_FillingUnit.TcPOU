@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_FillingUnit" Id="{8a983cee-2386-4e8d-a626-502c16077ca3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_FillingUnit
+VAR
+	bFillingValve : bool;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[GVL_IO.g_bFillingValve := bFillingValve;]]></ST>
+    </Implementation>
+    <Method Name="StartFill" Id="{f6776bc9-126b-40bd-b72a-bd2c0ff75d92}">
+      <Declaration><![CDATA[METHOD StartFill]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bFillingValve := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StopFill" Id="{181077c4-343a-467c-a41f-84fe7e2917eb}">
+      <Declaration><![CDATA[METHOD StopFill 
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bFillingValve := False;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_FillingUnit">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_FillingUnit.StartFill">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_FillingUnit.StopFill">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

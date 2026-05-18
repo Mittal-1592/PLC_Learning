@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <Itf Name="I_Machine" Id="{bb86d8a5-a707-4cee-ab1b-97c0610902c9}">
+    <Declaration><![CDATA[INTERFACE I_Machine
+]]></Declaration>
+    <Method Name="Execute" Id="{49c1d4f6-b9e6-4301-ab9c-bca24a4233b6}">
+      <Declaration><![CDATA[METHOD Execute 
+]]></Declaration>
+    </Method>
+    <Method Name="Start" Id="{cc4cbbaa-1bea-4bba-87cc-3fbd97c276bd}">
+      <Declaration><![CDATA[METHOD Start 
+]]></Declaration>
+    </Method>
+    <Method Name="Stop" Id="{e90c54ca-defe-414d-a081-fd0d8bb0e043}">
+      <Declaration><![CDATA[METHOD Stop]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

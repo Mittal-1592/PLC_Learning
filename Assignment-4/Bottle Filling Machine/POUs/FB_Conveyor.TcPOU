@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <POU Name="FB_Conveyor" Id="{e8e754eb-4909-4c31-80e0-4b783193a08c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Conveyor
+VAR
+	bConveyorRunning : Bool;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[GVL_IO.g_bConveyorMotor := bConveyorRunning;]]></ST>
+    </Implementation>
+    <Method Name="Start" Id="{b54206d2-2fa9-41d6-b7e3-30f061dac126}">
+      <Declaration><![CDATA[METHOD Start 
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bConveyorRunning := True;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Stop" Id="{f90c4e92-9159-43eb-96a3-326e47268de8}">
+      <Declaration><![CDATA[METHOD Stop
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bConveyorRunning := False;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_Conveyor">
+      <LineId Id="59" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Conveyor.Start">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Conveyor.Stop">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

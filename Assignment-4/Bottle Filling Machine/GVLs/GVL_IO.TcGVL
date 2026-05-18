@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.16">
+  <GVL Name="GVL_IO" Id="{7ddb7e4f-c398-4a35-9a36-35cb88b366aa}">
+    <Declaration><![CDATA[VAR_GLOBAL
+	g_bStartButton  : BOOL;   
+    g_bStopButton   : BOOL;   
+    g_bBottleSensor : BOOL;   
+    g_bLevelSensor  : BOOL;   
+	
+	g_nBottleCount : INT;
+	
+	g_bSIM_BottleSensor : BOOL := FALSE;
+	g_bSIM_LevelSensor  : BOOL := FALSE;
+	
+	
+   
+    g_bConveyorMotor : BOOL;  
+    g_bFillingValve  : BOOL;  
+    g_bAlarmLamp     : BOOL;  
+	
+	g_bresetCounter : BOOL;
+	
+	g_sStatusofMachine : STRING := 'Press start button';
+	g_conveyorStatus : STRING := 'Conveyor is stopped';
+	
+	g_eState : E_MachineState;
+	g_eMode : E_MachineMode := E_MachineMode.none;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
